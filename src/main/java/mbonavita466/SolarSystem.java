@@ -10,6 +10,11 @@ import com.jme3.math.Vector3f;
 import com.jme3.math.ColorRGBA;
 
 public class SolarSystem {
+    /*
+     * Cette classe regroupe toutes les données des astres présents dans la simulation : nom, caractéristiques physiques, positions, etc.
+     * J'utilise des dictionnaires pour stocker les variables.
+     */
+
     public static final String SUN = "Sun";
     public static final String MERCURY = "Mercury";
     public static final String VENUS = "Venus";
@@ -28,9 +33,11 @@ public class SolarSystem {
     public static final String KUIPER = "Kuiper";
     public static final String STARS = "Stars";
 
+    // Liste des astres dans la simulation
     public final List<String> objectNames = Arrays.asList(STARS, SUN, MERCURY, VENUS, EARTH, MOON, MARS, DEIMOS,
             PHOBOS, JUPITER, IO, EUROPA, SATURN, URANUS, NEPTUNE, PLUTO, KUIPER);
 
+    // Liste des astres qui peuvent être suivis par la caméra
     public final List<String> focusList = Arrays.asList(SUN, MERCURY, VENUS, EARTH, MOON, MARS, DEIMOS, PHOBOS,
             JUPITER, IO, EUROPA, SATURN, URANUS, NEPTUNE, PLUTO, KUIPER);
 
@@ -43,9 +50,11 @@ public class SolarSystem {
     private final Dictionary<String, String> weight = new Hashtable<>(); // Poids de l'objet à afficher dans l'interface
     private final Dictionary<String, ColorRGBA> color = new Hashtable<>(); // Couleur de l'orbite
 
-    public final int kuiperQuantity = 512;
-    public final float kuiperScale = 50f;
+    // Ceinture de Kuiper
+    public final int kuiperQuantity = 512; // Nombre d'astéroides
+    public final float kuiperScale = 50f; // Distance à laquelle les astéroides sont éloignés les uns des autres
 
+    // Anneaux de Saturne
     public final float saturnRingWidth = 7f;
     public final float saturnRingDistance = 40f;
 
