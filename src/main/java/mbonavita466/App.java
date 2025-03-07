@@ -230,7 +230,7 @@ public class App extends SimpleApplication {
 
             Geometry orbitGeo = new Geometry("Line", new Line(new Vector3f(x1, 0, y1), new Vector3f(x2, 0, y2)));
             Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-            mat.setColor("Color", ColorRGBA.White);
+            mat.setColor("Color", solarSystem.getColor(objectName));
             orbitGeo.setMaterial(mat);
 
             orbitGeo.setLocalTranslation(parentObject.getLocalTranslation());
@@ -245,12 +245,51 @@ public class App extends SimpleApplication {
         cam.setFrustumFar(1000000f);
         chaseCam = new ChaseCamera(cam, geos.get("Sun"), inputManager);
         chaseCam.setDragToRotate(true);
-        chaseCam.setDefaultDistance(200f);
-        chaseCam.setMinDistance(3f);
-        chaseCam.setMaxDistance(5000f);
-        chaseCam.setZoomSensitivity(10f);
         chaseCam.setMinVerticalRotation(-1f); 
         chaseCam.setMaxVerticalRotation(1.5f);
+        adjustFocus(currentFocus);
+    }
+
+    private void adjustFocus(int focus)
+    {
+        String name = solarSystem.focusList.get(focus);
+
+        switch(name) {
+            case "Sun":
+                adjustCamera(1500f, 800f, 500000f, 300f);
+                break;
+            case "Jupiter":
+            case "Saturn":
+            case "Uranus":
+            case "Neptune":
+                adjustCamera(120f, 70f, 5000f, 70f);
+                break;
+            case "Moon":
+            case "Mercury":
+                adjustCamera(15f, 3f, 1000f, 20f);
+                break;
+            case "Kuiper":
+                adjustCamera(1000f, 200f, 1500f, 50f);
+                break;
+            case "Io":
+            case "Europa":
+            case "Phobos":
+            case "Deimos":
+            case "Pluto":
+                adjustCamera(4f, 2f, 20f, 1f);
+                break;
+            default:
+                adjustCamera(30f, 20f, 3000f, 30f);
+                break;
+        }
+    }
+
+    private void adjustCamera(float defaultDistance, float minDistance, float maxDistance, float zoomSpeed)
+    {
+        chaseCam.setDefaultDistance(defaultDistance);
+        chaseCam.setMinDistance(minDistance);
+        chaseCam.setMaxDistance(maxDistance);
+        chaseCam.setZoomSensitivity(zoomSpeed);
     }
 
     private void initKeys() {
@@ -270,6 +309,7 @@ public class App extends SimpleApplication {
         if(currentFocus >= solarSystem.focusList.size()) currentFocus = 0;
         chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
         displayText(currentFocus);
+        adjustFocus(currentFocus);
     }
 
     private void decFocus() {
@@ -277,6 +317,7 @@ public class App extends SimpleApplication {
         if(currentFocus < 0) currentFocus = solarSystem.focusList.size() - 1;
         chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
         displayText(currentFocus);
+        adjustFocus(currentFocus);
     }
 
     private void toggleOrbitDisplay() {
@@ -412,9 +453,14 @@ public class App extends SimpleApplication {
 
     private void displayText(int currentFocus) {
         String name = solarSystem.focusList.get(currentFocus);
+
         nameText.setText(name);
+        if(name == "Kuiper") nameText.setText("Kuiper's Belt");
+
         weightText.setText("Weight : " + solarSystem.getWeight(name) + " kg");
+
         Integer size = (int)(solarSystem.getSize(name) * 10000f);
+        if(name == "Phobos" || name == "Deimos") size /= 10;
         sizeText.setText("Diameter : " + size.toString() + " km");
     }
 }
