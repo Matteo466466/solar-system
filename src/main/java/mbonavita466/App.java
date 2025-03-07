@@ -1,8 +1,9 @@
-package mbonavita466;
+package mbonavita;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
+import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Node;
 import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
@@ -18,12 +19,9 @@ import com.jme3.scene.shape.Line;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.scene.shape.Torus;
 import com.jme3.util.TangentBinormalGenerator;
+import com.jme3.light.AmbientLight;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Random;
+import java.util.*;
 
 public class App extends SimpleApplication {
     private static SolarSystem solarSystem;
@@ -31,20 +29,21 @@ public class App extends SimpleApplication {
     private Dictionary<String, Geometry> geos = new Hashtable<>();
     private Dictionary<String, Node> nodes = new Hashtable<>();
 
-    private Node orbitNode;
     private Node kuiperNode;
-    private List<Node> orbitNodes = new ArrayList<Node>();
-    private final int orbitRadialSamples = 1024;
+    private Node orbitNode;
+    private List<Node> orbitNodes = new ArrayList<>();
+    private final int orbitRadialSamples = 128;
     private boolean orbitDisplayed = true;
 
     private ChaseCamera chaseCam;
     private int currentFocus = 0;
 
     private Boolean isRunning = true;
-    private final Float distanceScale = 1f;
-    private final Float sizeScale = 1f;
+    private static Float distanceScale = 1f;
+    private static int timeScale = 6;
+    private List<Float> timeScales = Arrays.asList(-1/5f, -1/10f, -1/60f, -1/360f, -1/720f, 1/720f, 1/360f, 1/60f, 1/20f, 1/5f);
 
-    private final Float timeScale = 1f/360f;
+    Random random = new Random();
 
     BitmapFont font;
     BitmapText nameText;
@@ -68,6 +67,7 @@ public class App extends SimpleApplication {
         initOrbits();
         attachNodes();
 
+        initLight();
         initCamera();
         initKeys();
         initText();
@@ -77,9 +77,9 @@ public class App extends SimpleApplication {
     public void simpleUpdate(float tpf) {
         if(isRunning) {
             for (String name : solarSystem.objectNames) {
-                if(name != "Stars" && name != "Kuiper") {
-                    nodes.get(name).rotate(0, tpf * timeScale * FastMath.PI * 2 / solarSystem.getRevolutionPeriod(name), 0);
-                    geos.get(name).rotate(0, 0, tpf * timeScale * FastMath.PI * 2 / solarSystem.getRotationPeriod(name));
+                if(!name.equals(SolarSystem.STARS) && !name.equals(SolarSystem.KUIPER)) {
+                    nodes.get(name).rotate(0, tpf * timeScales.get(timeScale) * FastMath.PI * 2 / solarSystem.getRevolutionPeriod(name), 0);
+                    geos.get(name).rotate(0, 0, tpf * timeScales.get(timeScale)  * FastMath.PI * 2 / solarSystem.getRotationPeriod(name));
                 }
             }
         }
@@ -138,11 +138,16 @@ public class App extends SimpleApplication {
         rootNode.attachChild(nodes.get("Sun"));
     }
 
+    private void initLight() {
+        AmbientLight ambient = new AmbientLight();
+        ambient.setColor(ColorRGBA.White.mult(0.2f));
+    }
+
     private void initObjects() {
 
         for (int i = 0; i < solarSystem.objectNames.size(); i++) {
             String name = solarSystem.objectNames.get(i);
-            if(name != "Kuiper") {
+            if(!name.equals(SolarSystem.KUIPER)) {
                 geos.put(name, createObject(name, name + ".jpg"));
             }
         }
@@ -160,6 +165,7 @@ public class App extends SimpleApplication {
         material.setTexture("ColorMap", assetManager.loadTexture(texturePath + "/" + textureName));
         material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
+        material.setColor("GlowColor", ColorRGBA.Black);// Controls shininess/reflection
         geo.setMaterial(material);
 
         transformObjet(geo, objectName);
@@ -168,14 +174,13 @@ public class App extends SimpleApplication {
     }
 
     private void transformObjet(Geometry geo, String objectName) {
-       float size = solarSystem.getSize(objectName) * sizeScale;
+       float size = solarSystem.getSize(objectName) * distanceScale;
        float distance = solarSystem.getDistance(objectName) * distanceScale;
        Float position = solarSystem.getPosition(objectName);
        Vector3f rotation = solarSystem.getRotation(objectName);
 
        geo.scale(size, size, size);
        geo.setLocalTranslation(FastMath.sin(position) * distance, 0, FastMath.cos(position) * distance);
-       //geo.setLocalTranslation(distance, 0, 0);
        geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
     }
 
@@ -196,7 +201,6 @@ public class App extends SimpleApplication {
         createOrbit("Uranus", geos.get("Sun"), nodes.get("Sun"));
         createOrbit("Neptune", geos.get("Sun"), nodes.get("Sun"));
         createOrbit("Pluto", geos.get("Sun"), nodes.get("Sun"));
-        //createOrbit("Kuiper", geos.get("Sun"), nodes.get("Kuiper"));
 
         rootNode.attachChild(orbitNode);
     }
@@ -232,7 +236,7 @@ public class App extends SimpleApplication {
 
     private void initCamera() {
         cam.setFrustumFar(1000000f);
-        chaseCam = new ChaseCamera(cam, geos.get("Sun"), inputManager);
+        chaseCam = new ChaseCamera(cam, geos.get(SolarSystem.SUN), inputManager);
         chaseCam.setDragToRotate(true);
         chaseCam.setMinVerticalRotation(-1f); 
         chaseCam.setMaxVerticalRotation(1.5f);
@@ -244,27 +248,27 @@ public class App extends SimpleApplication {
         String name = solarSystem.focusList.get(focus);
 
         switch(name) {
-            case "Sun":
+            case SolarSystem.SUN:
                 adjustCamera(1500f, 800f, 500000f, 300f);
                 break;
-            case "Jupiter":
-            case "Saturn":
-            case "Uranus":
-            case "Neptune":
+            case SolarSystem.JUPITER:
+            case SolarSystem.SATURN:
+            case SolarSystem.URANUS:
+            case SolarSystem.NEPTUNE:
                 adjustCamera(120f, 70f, 5000f, 70f);
                 break;
-            case "Moon":
-            case "Mercury":
+            case SolarSystem.MOON:
+            case SolarSystem.MERCURY:
                 adjustCamera(15f, 3f, 1000f, 20f);
                 break;
-            case "Kuiper":
+            case SolarSystem.KUIPER:
                 adjustCamera(1000f, 200f, 1500f, 50f);
                 break;
-            case "Io":
-            case "Europa":
-            case "Phobos":
-            case "Deimos":
-            case "Pluto":
+            case SolarSystem.IO:
+            case SolarSystem.EUROPA:
+            case SolarSystem.PHOBOS:
+            case SolarSystem.DEIMOS:
+            case SolarSystem.PLUTO:
                 adjustCamera(4f, 2f, 20f, 1f);
                 break;
             default:
@@ -286,11 +290,25 @@ public class App extends SimpleApplication {
         inputManager.addMapping("IncFocus",  new KeyTrigger(KeyInput.KEY_RIGHT));
         inputManager.addMapping("DecFocus",  new KeyTrigger(KeyInput.KEY_LEFT));
         inputManager.addMapping("ToggleOrbitDisplay",  new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addMapping("IncTime",  new KeyTrigger(KeyInput.KEY_UP));
+        inputManager.addMapping("DecTime",  new KeyTrigger(KeyInput.KEY_DOWN));
 
         inputManager.addListener(actionListener, "Pause");
         inputManager.addListener(actionListener, "IncFocus");
         inputManager.addListener(actionListener, "DecFocus");
         inputManager.addListener(actionListener, "ToggleOrbitDisplay");
+        inputManager.addListener(actionListener, "IncTime");
+        inputManager.addListener(actionListener, "DecTime");
+    }
+
+    private void incTime() {
+        timeScale++;
+        if(timeScale >= timeScales.size()) timeScale = 0;
+    }
+
+    private void decTime() {
+        timeScale--;
+        if(timeScale < 0) timeScale = timeScales.size() - 1;
     }
 
     private void incFocus() {
@@ -319,20 +337,19 @@ public class App extends SimpleApplication {
     }
 
     private void enableOrbitDisplay() {
-        for (int i = 0; i < orbitNodes.size(); i++) {
-            rootNode.attachChild(orbitNodes.get(i));
+        for (Node node : orbitNodes) {
+            rootNode.attachChild(node);
         }
     }
 
     private void disableOrbitDisplay() {
-        for (int i = 0; i < orbitNodes.size(); i++) {
-            Node node = orbitNodes.get(i);
+        for (Node node : orbitNodes) {
             Node parent = node.getParent();
-            if(parent != null) parent.detachChild(node);
+            if (parent != null) parent.detachChild(node);
         }
     }
 
-    final private ActionListener actionListener = new ActionListener() {
+    private final ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (name.equals("Pause") && !keyPressed) {
@@ -347,19 +364,23 @@ public class App extends SimpleApplication {
             if (name.equals("ToggleOrbitDisplay") && !keyPressed) {
                     toggleOrbitDisplay();
                 }
+            if (name.equals("IncTime") && !keyPressed) {
+                    incTime();
+                }
+            if (name.equals("DecTime") && !keyPressed) {
+                    decTime();
+                }
             }
         };
     
-        final private AnalogListener analogListener = new AnalogListener() {
+        private final AnalogListener analogListener = new AnalogListener() {
             @Override
-            public void onAnalog(String name, float value, float tpf) {
-    
-            }
+            public void onAnalog(String name, float value, float tpf) {}
         };
 
         
     private void createSaturnRing() {
-        String parentObjectName = "Saturn";
+        String parentObjectName = SolarSystem.SATURN;
         String textureName = "Textures/Objects/Saturnring.jpg";
 
         Torus torus = new Torus(32, 2, solarSystem.saturnRingWidth, solarSystem.saturnRingDistance);
@@ -376,14 +397,13 @@ public class App extends SimpleApplication {
     }
 
     private void createKuiperBelt() {
-        String objectName = "Kuiper";
-        Random random = new Random();
+        String objectName = SolarSystem.KUIPER;
         kuiperNode = new Node("kuiperNode");
 
         int quantity = solarSystem.kuiperQuantity;
         float scale = solarSystem.kuiperScale;
         float distance = solarSystem.getDistance(objectName);
-        float size = solarSystem.getSize(objectName) * sizeScale;
+        float size = solarSystem.getSize(objectName);
         Vector3f rotation = solarSystem.getRotation(objectName);
 
         float x;
@@ -416,11 +436,11 @@ public class App extends SimpleApplication {
             geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
             kuiperNode.attachChild(geo);
 
-            if(i == (quantity / 2)) geos.put("Kuiper", geo);
+            if(i == (quantity / 2)) geos.put(SolarSystem.KUIPER, geo);
         }
         kuiperNode.setLocalTranslation(geos.get("Sun").getLocalTranslation());
         rootNode.attachChild(kuiperNode);
-        nodes.put("Kuiper", kuiperNode);
+        nodes.put(SolarSystem.KUIPER, kuiperNode);
     }
 
     private void initText() {
@@ -444,12 +464,12 @@ public class App extends SimpleApplication {
         String name = solarSystem.focusList.get(currentFocus);
 
         nameText.setText(name);
-        if(name == "Kuiper") nameText.setText("Kuiper's Belt");
+        if(name.equals(SolarSystem.KUIPER)) nameText.setText("Kuiper's Belt");
 
         weightText.setText("Weight : " + solarSystem.getWeight(name) + " kg");
 
-        Integer size = (int)(solarSystem.getSize(name) * 10000f);
-        if(name == "Phobos" || name == "Deimos") size /= 10;
-        sizeText.setText("Diameter : " + size.toString() + " km");
+        int size = (int)(solarSystem.getSize(name) * 10000f);
+        if(name.equals(SolarSystem.PHOBOS)|| name.equals(SolarSystem.DEIMOS)) size /= 10;
+        sizeText.setText("Diameter : " + size + " km");
     }
 }
