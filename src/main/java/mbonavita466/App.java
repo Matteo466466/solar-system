@@ -4,34 +4,23 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.scene.Node;
-import com.jme3.input.CameraInput;
 import com.jme3.input.ChaseCamera;
-import com.jme3.input.ChaseCamera;
-import com.jme3.input.FlyByCamera;
 import com.jme3.input.KeyInput;
-import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
-import com.jme3.input.controls.MouseButtonTrigger;
-import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import com.jme3.renderer.queue.RenderQueue.Bucket;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Line;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.scene.shape.Torus;
 import com.jme3.util.TangentBinormalGenerator;
-import com.jme3.scene.Spatial;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Random;
@@ -185,8 +174,8 @@ public class App extends SimpleApplication {
        Vector3f rotation = solarSystem.getRotation(objectName);
 
        geo.scale(size, size, size);
-       //geo.setLocalTranslation(FastMath.cos(position) * distance,FastMath.sin(position) * distance, 0f);
-       geo.setLocalTranslation(distance, 0f, 0f);
+       geo.setLocalTranslation(FastMath.sin(position) * distance, 0, FastMath.cos(position) * distance);
+       //geo.setLocalTranslation(distance, 0, 0);
        geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
     }
 

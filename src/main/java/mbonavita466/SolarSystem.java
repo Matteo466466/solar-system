@@ -44,28 +44,28 @@ public class SolarSystem {
     // Couleur de l'orbite
     private final Dictionary<String, ColorRGBA> color = new Hashtable<>();
 
-    public final float kuiperScale = 50f;
     public final int kuiperQuantity = 512;
+    public final float kuiperScale = 50f;
 
     public final float saturnRingWidth = 0.7f;
     public final float saturnRingDistance = 4f;
 
     public SolarSystem() {
         initObjectData("Sun", 139f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 0f, 1f, 30f, "1.939 * 10^30", ColorRGBA.Yellow);
-        initObjectData("Mercury", 0.488f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 579f, 88f, 59f, "3.301 * 10^23", ColorRGBA.Orange);
-        initObjectData("Venus", 1.21f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 1082f, 225f, 243f, "4.867 * 10^24", ColorRGBA.Brown);
-        initObjectData("Earth", 1.27f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 1496f, 365f, 1f, "5.972 * 10^24", ColorRGBA.Blue);
-        initObjectData("Moon", 0.34f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 16f, 27f, 27f, "7.342 * 10^22", ColorRGBA.White);
-        initObjectData("Mars", 0.678f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 2270f, 687f, 1f, "6.417 * 10^23", ColorRGBA.Red);
+        initObjectData("Mercury", 0.488f, FastMath.PI / 2, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 579f, 88f, 59f, "3.301 * 10^23", ColorRGBA.Pink);
+        initObjectData("Venus", 1.21f, FastMath.PI * 7 / 8, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 1082f, 225f, 243f, "4.867 * 10^24", ColorRGBA.Brown);
+        initObjectData("Earth", 1.27f, FastMath.PI * 7 / 8, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 1496f, 365f, 1f, "5.972 * 10^24", ColorRGBA.Cyan);
+        initObjectData("Moon", 0.34f, FastMath.PI / 2, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 16f, 27f, 27f, "7.342 * 10^22", ColorRGBA.White);
+        initObjectData("Mars", 0.678f, FastMath.PI * 3 / 4, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 2270f, 687f, 1f, "6.417 * 10^23", ColorRGBA.Red);
         initObjectData("Phobos", 0.022f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 8f, 0.3f, 0.3f, "1.065 * 10^16",ColorRGBA.White);
         initObjectData("Deimos", 0.012f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 9f, 1.3f, 1.3f, "1.476 * 10^15", ColorRGBA.White);
-        initObjectData("Jupiter", 13.9f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 7783f, 4328f, 0.4f, "1.898 * 10^27", ColorRGBA.Orange);
+        initObjectData("Jupiter", 13.9f, FastMath.PI * 2, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 7783f, 4328f, 0.4f, "1.898 * 10^27", ColorRGBA.Orange);
         initObjectData("Io", 0.36f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 56f, 1.8f, 1.8f, "8.931 * 10^22", ColorRGBA.White);
         initObjectData("Europa", 0.31f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 81f, 3.6f, 3.6f, "4.799 * 10^22", ColorRGBA.White);
-        initObjectData("Saturn", 11.6f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 14290f, 10752f, 0.4f, "5.683 * 10^26", ColorRGBA.White);
-        initObjectData("Uranus", 5f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 28710f, 30000f, 0.6f, "8.681 * 10^25", ColorRGBA.Green);
-        initObjectData("Neptune", 4.9f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 44950f, 60000f, 0.6f, "1.024 * 10^26", ColorRGBA.Cyan);
-        initObjectData("Pluto", 0.237f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 59060f, 90000f, 6.4f, "1.939 * 10^30", ColorRGBA.Brown);
+        initObjectData("Saturn", 11.6f, FastMath.PI * 15 / 8, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 14290f, 10752f, 0.4f, "5.683 * 10^26", ColorRGBA.Yellow);
+        initObjectData("Uranus", 5f, FastMath.PI * 2 / 3, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 28710f, 30000f, 0.6f, "8.681 * 10^25", ColorRGBA.Green);
+        initObjectData("Neptune", 4.9f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 44950f, 60000f, 0.6f, "1.024 * 10^26", ColorRGBA.Blue);
+        initObjectData("Pluto", 0.237f, FastMath.PI * 7 / 4, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 59060f, 90000f, 6.4f, "1.939 * 10^30", ColorRGBA.Brown);
         initObjectData("Kuiper", 1.5f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 61000f, 90000f, 1f, "10^25 (total)", ColorRGBA.White);
         initObjectData("Stars", 200000f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 0f, 1f, 1f, "", ColorRGBA.White);
     }
