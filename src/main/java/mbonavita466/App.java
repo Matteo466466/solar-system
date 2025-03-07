@@ -31,8 +31,7 @@ public class App extends SimpleApplication {
     // Orbites
     private Node orbitNode;
     private List<Node> orbitNodes = new ArrayList<>();
-    private final int orbitRadialSamples = 128;
-    private boolean orbitDisplayed = true;
+    private final int orbitRadialSamples = 256;
 
     // Ceinture de Kuiper
     private Node kuiperNode;
@@ -88,10 +87,193 @@ public class App extends SimpleApplication {
         }
     }
 
+    private final ActionListener actionListener = new ActionListener() {
+        @Override
+        public void onAction(String name, boolean keyPressed, float tpf) {
+            if (name.equals("Pause") && !keyPressed) {
+                isRunning = !isRunning;
+            }
+            if (name.equals("IncFocus") && !keyPressed) {
+                incFocus();
+            }
+            if (name.equals("DecFocus") && !keyPressed) {
+                decFocus();
+            }
+            if (name.equals("ToggleOrbitDisplay") && !keyPressed) {
+                toggleOrbitDisplay();
+            }
+            if (name.equals("IncTime") && !keyPressed) {
+                incTime();
+            }
+            if (name.equals("DecTime") && !keyPressed) {
+                decTime();
+            }
+        }
+    };
+
+    private final AnalogListener analogListener = new AnalogListener() {
+        @Override
+        public void onAnalog(String name, float value, float tpf) {}
+    };
+
     private void initNodes() {
         for (String name : solarSystem.objectNames) {
             nodes.put(name, new Node(name + "Node"));
         }
+    }
+
+    private void initObjects() {
+        for (int i = 0; i < solarSystem.objectNames.size(); i++) {
+            String name = solarSystem.objectNames.get(i);
+            if(!name.equals(SolarSystem.KUIPER)) {
+                geos.put(name, createObject(name, name + ".jpg"));
+            }
+        }
+    }
+
+    private Geometry createObject(String objectName, String textureName) {
+        Sphere sphere = new Sphere(32,32, 2f, true, false);
+        Geometry geo = new Geometry(objectName, sphere);
+
+        sphere.setTextureMode(Sphere.TextureMode.Projected);
+        TangentBinormalGenerator.generate(sphere);
+
+        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        String texturePath = "Textures/Objects";
+        material.setTexture("ColorMap", assetManager.loadTexture(texturePath + "/" + textureName));
+        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
+        material.setColor("GlowColor", ColorRGBA.Black);// Controls shininess/reflection
+        geo.setMaterial(material);
+
+        transformObjet(geo, objectName);
+
+        return geo;
+    }
+
+    private void transformObjet(Geometry geo, String objectName) {
+       float size = solarSystem.getSize(objectName) * distanceScale;
+       float distance = solarSystem.getDistance(objectName) * distanceScale;
+       Float position = solarSystem.getPosition(objectName);
+       Vector3f rotation = solarSystem.getRotation(objectName);
+
+       geo.scale(size, size, size);
+       geo.setLocalTranslation(FastMath.sin(position) * distance, 0, FastMath.cos(position) * distance);
+       geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
+    }
+
+    private void createSaturnRing() {
+        String parentObjectName = SolarSystem.SATURN;
+        String textureName = "Textures/Objects/Saturnring.jpg";
+
+        Torus torus = new Torus(32, 2, solarSystem.saturnRingWidth, solarSystem.saturnRingDistance);
+        Geometry torusGeo = new Geometry("Torus", torus);
+
+        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        material.setTexture("ColorMap", assetManager.loadTexture(textureName));
+        torusGeo.setMaterial(material);
+
+        torusGeo.setLocalTranslation(geos.get(parentObjectName).getLocalTranslation());
+        torusGeo.rotate(-FastMath.HALF_PI, 0, FastMath.PI / 8);
+
+        nodes.get(parentObjectName).attachChild(torusGeo);
+    }
+
+    private void createKuiperBelt() {
+        String objectName = SolarSystem.KUIPER;
+        kuiperNode = new Node("kuiperNode");
+
+        int quantity = solarSystem.kuiperQuantity;
+        float scale = solarSystem.kuiperScale;
+        float distance = solarSystem.getDistance(objectName);
+        float size = solarSystem.getSize(objectName);
+        Vector3f rotation = solarSystem.getRotation(objectName);
+
+        float x;
+        float y;
+        float z;
+
+        for (int i = 0; i < quantity; i++) {
+            x = (float)Math.cos(i * FastMath.PI / (quantity * 8)) * distance;
+            y = 0;
+            z = (float)Math.sin(i * FastMath.PI / (quantity * 8)) * distance;
+
+            x += (random.nextFloat() * scale * 2) - scale;
+            y += (random.nextFloat() * scale * 2) - scale;
+            z += (random.nextFloat() * scale * 2) - scale;
+
+            Sphere sphere = new Sphere(32,32, 2f, true, false);
+            Geometry geo = new Geometry(objectName, sphere);
+
+            sphere.setTextureMode(Sphere.TextureMode.Projected);
+            TangentBinormalGenerator.generate(sphere);
+
+            Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+            material.setTexture("ColorMap", assetManager.loadTexture("Textures/Objects/Kuiper.jpg"));
+            material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+            material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
+            geo.setMaterial(material);
+
+            geo.scale(size, size, size);
+            geo.setLocalTranslation(x * distanceScale, y * distanceScale, z * distanceScale);
+            geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
+            kuiperNode.attachChild(geo);
+
+            if(i == (quantity / 2)) geos.put(SolarSystem.KUIPER, geo);
+        }
+        kuiperNode.setLocalTranslation(geos.get("Sun").getLocalTranslation());
+        rootNode.attachChild(kuiperNode);
+        nodes.put(SolarSystem.KUIPER, kuiperNode);
+    }
+
+    private void initOrbits() {
+        orbitNode = new Node("orbitNode");
+
+        createOrbit(SolarSystem.MERCURY, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.VENUS, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.EARTH, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.MOON, geos.get(SolarSystem.EARTH), nodes.get(SolarSystem.EARTH));
+        createOrbit(SolarSystem.MARS, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.DEIMOS, geos.get(SolarSystem.MARS), nodes.get(SolarSystem.MARS));
+        createOrbit(SolarSystem.PHOBOS, geos.get(SolarSystem.MARS), nodes.get(SolarSystem.MARS));
+        createOrbit(SolarSystem.JUPITER, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.IO, geos.get(SolarSystem.JUPITER), nodes.get(SolarSystem.JUPITER));
+        createOrbit(SolarSystem.EUROPA, geos.get(SolarSystem.JUPITER), nodes.get(SolarSystem.JUPITER));
+        createOrbit(SolarSystem.SATURN, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.URANUS, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.NEPTUNE, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.PLUTO, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+
+        rootNode.attachChild(orbitNode);
+    }
+    
+    private void createOrbit(String objectName, Geometry parentObject, Node parentNode)
+    {
+        Node node = new Node(objectName + "orbit");
+
+        float distance = solarSystem.getDistance(objectName);
+        float x1;
+        float x2;
+        float y1;
+        float y2;
+
+        for(int i = 0; i < orbitRadialSamples; i++) {
+            x1 = (float)Math.cos(2 * i * FastMath.PI / orbitRadialSamples) * distance;
+            y1 = (float)Math.sin(2 * i * FastMath.PI / orbitRadialSamples) * distance;
+            x2 = (float)Math.cos(2 * (i + 1) * FastMath.PI / orbitRadialSamples) * distance;
+            y2 = (float)Math.sin(2 * (i + 1) * FastMath.PI / orbitRadialSamples) * distance;
+
+            Geometry orbitGeo = new Geometry("Line", new Line(new Vector3f(x1, 0, y1), new Vector3f(x2, 0, y2)));
+            Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+            mat.setColor("Color", solarSystem.getColor(objectName));
+            orbitGeo.setMaterial(mat);
+
+            orbitGeo.setLocalTranslation(parentObject.getLocalTranslation());
+            node.attachChild(orbitGeo);
+        }
+        
+        parentNode.attachChild(node);
+        orbitNodes.add(node);
     }
 
     private void attachNodes() {
@@ -141,96 +323,6 @@ public class App extends SimpleApplication {
         rootNode.attachChild(nodes.get("Sun"));
     }
 
-    private void initObjects() {
-        for (int i = 0; i < solarSystem.objectNames.size(); i++) {
-            String name = solarSystem.objectNames.get(i);
-            if(!name.equals(SolarSystem.KUIPER)) {
-                geos.put(name, createObject(name, name + ".jpg"));
-            }
-        }
-    }
-
-    private Geometry createObject(String objectName, String textureName) {
-        Sphere sphere = new Sphere(32,32, 2f, true, false);
-        Geometry geo = new Geometry(objectName, sphere);
-
-        sphere.setTextureMode(Sphere.TextureMode.Projected);
-        TangentBinormalGenerator.generate(sphere);
-
-        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        String texturePath = "Textures/Objects";
-        material.setTexture("ColorMap", assetManager.loadTexture(texturePath + "/" + textureName));
-        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-        material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
-        material.setColor("GlowColor", ColorRGBA.Black);// Controls shininess/reflection
-        geo.setMaterial(material);
-
-        transformObjet(geo, objectName);
-
-        return geo;
-    }
-
-    private void transformObjet(Geometry geo, String objectName) {
-       float size = solarSystem.getSize(objectName) * distanceScale;
-       float distance = solarSystem.getDistance(objectName) * distanceScale;
-       Float position = solarSystem.getPosition(objectName);
-       Vector3f rotation = solarSystem.getRotation(objectName);
-
-       geo.scale(size, size, size);
-       geo.setLocalTranslation(FastMath.sin(position) * distance, 0, FastMath.cos(position) * distance);
-       geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
-    }
-
-    private void initOrbits() {
-        orbitNode = new Node("orbitNode");
-
-        createOrbit("Mercury", geos.get("Sun"), nodes.get("Sun"));
-        createOrbit("Venus", geos.get("Sun"), nodes.get("Sun"));
-        createOrbit("Earth", geos.get("Sun"), nodes.get("Sun"));
-        createOrbit("Moon", geos.get("Earth"), nodes.get("Earth"));
-        createOrbit("Mars", geos.get("Sun"), nodes.get("Sun"));
-        createOrbit("Deimos", geos.get("Mars"), nodes.get("Mars"));
-        createOrbit("Phobos", geos.get("Mars"), nodes.get("Mars"));
-        createOrbit("Jupiter", geos.get("Sun"), nodes.get("Sun"));
-        createOrbit("Io", geos.get("Jupiter"), nodes.get("Jupiter"));
-        createOrbit("Europa", geos.get("Jupiter"), nodes.get("Jupiter"));
-        createOrbit("Saturn", geos.get("Sun"), nodes.get("Sun"));
-        createOrbit("Uranus", geos.get("Sun"), nodes.get("Sun"));
-        createOrbit("Neptune", geos.get("Sun"), nodes.get("Sun"));
-        createOrbit("Pluto", geos.get("Sun"), nodes.get("Sun"));
-
-        rootNode.attachChild(orbitNode);
-    }
-    
-    private void createOrbit(String objectName, Geometry parentObject, Node parentNode)
-    {
-        Node node = new Node(objectName + "orbit");
-
-        float distance = solarSystem.getDistance(objectName);
-        float x1;
-        float x2;
-        float y1;
-        float y2;
-
-        for(int i = 0; i < orbitRadialSamples; i++) {
-            x1 = (float)Math.cos(2 * i * FastMath.PI / orbitRadialSamples) * distance;
-            y1 = (float)Math.sin(2 * i * FastMath.PI / orbitRadialSamples) * distance;
-            x2 = (float)Math.cos(2 * (i + 1) * FastMath.PI / orbitRadialSamples) * distance;
-            y2 = (float)Math.sin(2 * (i + 1) * FastMath.PI / orbitRadialSamples) * distance;
-
-            Geometry orbitGeo = new Geometry("Line", new Line(new Vector3f(x1, 0, y1), new Vector3f(x2, 0, y2)));
-            Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-            mat.setColor("Color", solarSystem.getColor(objectName));
-            orbitGeo.setMaterial(mat);
-
-            orbitGeo.setLocalTranslation(parentObject.getLocalTranslation());
-            node.attachChild(orbitGeo);
-        }
-        
-        parentNode.attachChild(node);
-        orbitNodes.add(node);
-    }
-
     private void initCamera() {
         cam.setFrustumFar(1000000f);
         chaseCam = new ChaseCamera(cam, geos.get(SolarSystem.SUN), inputManager);
@@ -238,6 +330,89 @@ public class App extends SimpleApplication {
         chaseCam.setMinVerticalRotation(-1f); 
         chaseCam.setMaxVerticalRotation(1.5f);
         adjustFocus(currentFocus);
+    }
+
+    private void initKeys() {
+        inputManager.addMapping("Pause",  new KeyTrigger(KeyInput.KEY_P));
+        inputManager.addMapping("IncFocus",  new KeyTrigger(KeyInput.KEY_RIGHT));
+        inputManager.addMapping("DecFocus",  new KeyTrigger(KeyInput.KEY_LEFT));
+        inputManager.addMapping("ToggleOrbitDisplay",  new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addMapping("IncTime",  new KeyTrigger(KeyInput.KEY_UP));
+        inputManager.addMapping("DecTime",  new KeyTrigger(KeyInput.KEY_DOWN));
+
+        inputManager.addListener(actionListener, "Pause");
+        inputManager.addListener(actionListener, "IncFocus");
+        inputManager.addListener(actionListener, "DecFocus");
+        inputManager.addListener(actionListener, "ToggleOrbitDisplay");
+        inputManager.addListener(actionListener, "IncTime");
+        inputManager.addListener(actionListener, "DecTime");
+    }
+
+    private void initText() {
+        font = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        nameText = createText(30, 450, 120);
+        sizeText = createText(14, 450, 80);
+        weightText = createText(14, 450, 60);
+        displayText(currentFocus);
+    }
+
+    private BitmapText createText(float fontSize, float x, float y) {
+        BitmapText text = new BitmapText(font);
+        text.setText("");
+        text.setSize(fontSize);
+        text.setLocalTranslation(x, y, 0);
+        guiNode.attachChild(text);
+        return text;
+    }
+
+    private void displayText(int currentFocus) {
+        String name = solarSystem.focusList.get(currentFocus);
+
+        nameText.setText(name);
+        if(name.equals(SolarSystem.KUIPER)) nameText.setText("Kuiper's Belt");
+
+        weightText.setText("Weight : " + solarSystem.getWeight(name) + " kg");
+
+        int size = (int)(solarSystem.getSize(name) * 10000f);
+        if(name.equals(SolarSystem.PHOBOS)|| name.equals(SolarSystem.DEIMOS) || name.equals(SolarSystem.KUIPER)) size /= 10;
+        sizeText.setText("Diameter : " + size + " km");
+    }
+
+    private void incTime() {
+        timeScale++;
+        if(timeScale >= timeScales.size()) timeScale = 0;
+    }
+
+    private void decTime() {
+        timeScale--;
+        if(timeScale < 0) timeScale = timeScales.size() - 1;
+    }
+
+    private void incFocus() {
+        currentFocus++;
+        if(currentFocus >= solarSystem.focusList.size()) currentFocus = 0;
+        chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
+        displayText(currentFocus);
+        adjustFocus(currentFocus);
+    }
+
+    private void decFocus() {
+        currentFocus--;
+        if(currentFocus < 0) currentFocus = solarSystem.focusList.size() - 1;
+        chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
+        displayText(currentFocus);
+        adjustFocus(currentFocus);
+    }
+
+    private void toggleOrbitDisplay() {
+        disableOrbitDisplay();
+    }
+
+    private void disableOrbitDisplay() {
+        for (Node node : orbitNodes) {
+            Node parent = node.getParent();
+            if (parent != null) parent.detachChild(node);
+        }
     }
 
     private void adjustFocus(int focus)
@@ -280,193 +455,5 @@ public class App extends SimpleApplication {
         chaseCam.setMinDistance(minDistance);
         chaseCam.setMaxDistance(maxDistance);
         chaseCam.setZoomSensitivity(zoomSpeed);
-    }
-
-    private void initKeys() {
-        inputManager.addMapping("Pause",  new KeyTrigger(KeyInput.KEY_P));
-        inputManager.addMapping("IncFocus",  new KeyTrigger(KeyInput.KEY_RIGHT));
-        inputManager.addMapping("DecFocus",  new KeyTrigger(KeyInput.KEY_LEFT));
-        inputManager.addMapping("ToggleOrbitDisplay",  new KeyTrigger(KeyInput.KEY_SPACE));
-        inputManager.addMapping("IncTime",  new KeyTrigger(KeyInput.KEY_UP));
-        inputManager.addMapping("DecTime",  new KeyTrigger(KeyInput.KEY_DOWN));
-
-        inputManager.addListener(actionListener, "Pause");
-        inputManager.addListener(actionListener, "IncFocus");
-        inputManager.addListener(actionListener, "DecFocus");
-        inputManager.addListener(actionListener, "ToggleOrbitDisplay");
-        inputManager.addListener(actionListener, "IncTime");
-        inputManager.addListener(actionListener, "DecTime");
-    }
-
-    private void incTime() {
-        timeScale++;
-        if(timeScale >= timeScales.size()) timeScale = 0;
-    }
-
-    private void decTime() {
-        timeScale--;
-        if(timeScale < 0) timeScale = timeScales.size() - 1;
-    }
-
-    private void incFocus() {
-        currentFocus++;
-        if(currentFocus >= solarSystem.focusList.size()) currentFocus = 0;
-        chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
-        displayText(currentFocus);
-        adjustFocus(currentFocus);
-    }
-
-    private void decFocus() {
-        currentFocus--;
-        if(currentFocus < 0) currentFocus = solarSystem.focusList.size() - 1;
-        chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
-        displayText(currentFocus);
-        adjustFocus(currentFocus);
-    }
-
-    private void toggleOrbitDisplay() {
-        /*
-        orbitDisplayed = !orbitDisplayed;
-        if(orbitDisplayed) enableOrbitDisplay();
-        else disableOrbitDisplay();
-        */
-        disableOrbitDisplay();
-    }
-
-    private void enableOrbitDisplay() {
-        for (Node node : orbitNodes) {
-            rootNode.attachChild(node);
-        }
-    }
-
-    private void disableOrbitDisplay() {
-        for (Node node : orbitNodes) {
-            Node parent = node.getParent();
-            if (parent != null) parent.detachChild(node);
-        }
-    }
-
-    private final ActionListener actionListener = new ActionListener() {
-        @Override
-        public void onAction(String name, boolean keyPressed, float tpf) {
-            if (name.equals("Pause") && !keyPressed) {
-                    isRunning = !isRunning;
-                }
-            if (name.equals("IncFocus") && !keyPressed) {
-                    incFocus();
-                }
-            if (name.equals("DecFocus") && !keyPressed) {
-                    decFocus();
-                }
-            if (name.equals("ToggleOrbitDisplay") && !keyPressed) {
-                    toggleOrbitDisplay();
-                }
-            if (name.equals("IncTime") && !keyPressed) {
-                    incTime();
-                }
-            if (name.equals("DecTime") && !keyPressed) {
-                    decTime();
-                }
-            }
-        };
-    
-        private final AnalogListener analogListener = new AnalogListener() {
-            @Override
-            public void onAnalog(String name, float value, float tpf) {}
-        };
-
-        
-    private void createSaturnRing() {
-        String parentObjectName = SolarSystem.SATURN;
-        String textureName = "Textures/Objects/Saturnring.jpg";
-
-        Torus torus = new Torus(32, 2, solarSystem.saturnRingWidth, solarSystem.saturnRingDistance);
-        Geometry torusGeo = new Geometry("Torus", torus);
-
-        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        material.setTexture("ColorMap", assetManager.loadTexture(textureName));
-        torusGeo.setMaterial(material);
-
-        torusGeo.setLocalTranslation(geos.get(parentObjectName).getLocalTranslation());
-        torusGeo.rotate(-FastMath.HALF_PI, 0, FastMath.PI / 8);
-
-        nodes.get(parentObjectName).attachChild(torusGeo);
-    }
-
-    private void createKuiperBelt() {
-        String objectName = SolarSystem.KUIPER;
-        kuiperNode = new Node("kuiperNode");
-
-        int quantity = solarSystem.kuiperQuantity;
-        float scale = solarSystem.kuiperScale;
-        float distance = solarSystem.getDistance(objectName);
-        float size = solarSystem.getSize(objectName);
-        Vector3f rotation = solarSystem.getRotation(objectName);
-
-        float x;
-        float y;
-        float z;
-
-        for (int i = 0; i < quantity; i++) {
-            x = (float)Math.cos(i * FastMath.PI / (quantity * 8)) * distance;
-            y = 0;
-            z = (float)Math.sin(i * FastMath.PI / (quantity * 8)) * distance;
-
-            x += (random.nextFloat() * scale * 2) - scale;
-            y += (random.nextFloat() * scale * 2) - scale;
-            z += (random.nextFloat() * scale * 2) - scale;
-
-            Sphere sphere = new Sphere(32,32, 2f, true, false);
-            Geometry geo = new Geometry(objectName, sphere);
-    
-            sphere.setTextureMode(Sphere.TextureMode.Projected);
-            TangentBinormalGenerator.generate(sphere);
-    
-            Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-            material.setTexture("ColorMap", assetManager.loadTexture("Textures/Objects/Kuiper.jpg"));
-            material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-            material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
-            geo.setMaterial(material);
-
-            geo.scale(size, size, size);
-            geo.setLocalTranslation(x * distanceScale, y * distanceScale, z * distanceScale);
-            geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
-            kuiperNode.attachChild(geo);
-
-            if(i == (quantity / 2)) geos.put(SolarSystem.KUIPER, geo);
-        }
-        kuiperNode.setLocalTranslation(geos.get("Sun").getLocalTranslation());
-        rootNode.attachChild(kuiperNode);
-        nodes.put(SolarSystem.KUIPER, kuiperNode);
-    }
-
-    private void initText() {
-        font = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        nameText = createText(30, 450, 120);
-        sizeText = createText(14, 450, 80);
-        weightText = createText(14, 450, 60);
-        displayText(currentFocus);
-    }
-
-    private BitmapText createText(float fontSize, float x, float y) {
-        BitmapText text = new BitmapText(font);
-        text.setText("");
-        text.setSize(fontSize);
-        text.setLocalTranslation(x, y, 0);
-        guiNode.attachChild(text);
-        return text;
-    }
-
-    private void displayText(int currentFocus) {
-        String name = solarSystem.focusList.get(currentFocus);
-
-        nameText.setText(name);
-        if(name.equals(SolarSystem.KUIPER)) nameText.setText("Kuiper's Belt");
-
-        weightText.setText("Weight : " + solarSystem.getWeight(name) + " kg");
-
-        int size = (int)(solarSystem.getSize(name) * 10000f);
-        if(name.equals(SolarSystem.PHOBOS)|| name.equals(SolarSystem.DEIMOS)) size /= 10;
-        sizeText.setText("Diameter : " + size + " km");
     }
 }
