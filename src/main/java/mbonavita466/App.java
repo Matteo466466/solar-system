@@ -19,32 +19,36 @@ import com.jme3.scene.shape.Line;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.scene.shape.Torus;
 import com.jme3.util.TangentBinormalGenerator;
-import com.jme3.light.AmbientLight;
 
 import java.util.*;
 
 public class App extends SimpleApplication {
-    private static SolarSystem solarSystem;
+    private static SolarSystem solarSystem; // Accès aux données des astres
 
-    private Dictionary<String, Geometry> geos = new Hashtable<>();
-    private Dictionary<String, Node> nodes = new Hashtable<>();
+    private Dictionary<String, Geometry> geos = new Hashtable<>(); // Liste des astres
+    private Dictionary<String, Node> nodes = new Hashtable<>(); // Liste des nodes principaux
 
-    private Node kuiperNode;
+    // Orbites
     private Node orbitNode;
     private List<Node> orbitNodes = new ArrayList<>();
     private final int orbitRadialSamples = 128;
     private boolean orbitDisplayed = true;
 
+    // Ceinture de Kuiper
+    private Node kuiperNode;
+    Random random = new Random(); // Chaque astéroide a une position aléatoire
+
+    // Camera
     private ChaseCamera chaseCam;
     private int currentFocus = 0;
 
+    // Paramètres de la simulation
     private Boolean isRunning = true;
-    private static Float distanceScale = 1f;
     private static int timeScale = 6;
     private List<Float> timeScales = Arrays.asList(-1/5f, -1/10f, -1/60f, -1/360f, -1/720f, 1/720f, 1/360f, 1/60f, 1/20f, 1/5f);
+    private static Float distanceScale = 1f;
 
-    Random random = new Random();
-
+    // UI
     BitmapFont font;
     BitmapText nameText;
     BitmapText weightText;
@@ -67,7 +71,6 @@ public class App extends SimpleApplication {
         initOrbits();
         attachNodes();
 
-        initLight();
         initCamera();
         initKeys();
         initText();
@@ -138,13 +141,7 @@ public class App extends SimpleApplication {
         rootNode.attachChild(nodes.get("Sun"));
     }
 
-    private void initLight() {
-        AmbientLight ambient = new AmbientLight();
-        ambient.setColor(ColorRGBA.White.mult(0.2f));
-    }
-
     private void initObjects() {
-
         for (int i = 0; i < solarSystem.objectNames.size(); i++) {
             String name = solarSystem.objectNames.get(i);
             if(!name.equals(SolarSystem.KUIPER)) {
