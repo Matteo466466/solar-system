@@ -3,6 +3,7 @@ package mbonavita;
 import com.jme3.app.SimpleApplication;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
+import com.jme3.light.PointLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Node;
 import com.jme3.input.ChaseCamera;
@@ -53,6 +54,8 @@ public class App extends SimpleApplication {
     BitmapText weightText;
     BitmapText sizeText;
 
+    private PointLight pointLight;
+
     public static void main(String[] args) {
         App app = new App();
         solarSystem = new SolarSystem();
@@ -61,6 +64,7 @@ public class App extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
+        initLight();
         initNodes();
         initObjects();
 
@@ -116,6 +120,13 @@ public class App extends SimpleApplication {
         public void onAnalog(String name, float value, float tpf) {}
     };
 
+    private void initLight() {
+        pointLight = new PointLight();
+        pointLight.setColor(ColorRGBA.White);
+        pointLight.setPosition(new Vector3f(-0.f, -0.f, -0.f));
+        rootNode.addLight(pointLight);
+    }
+
     private void initNodes() {
         for (String name : solarSystem.objectNames) {
             nodes.put(name, new Node(name + "Node"));
@@ -125,13 +136,14 @@ public class App extends SimpleApplication {
     private void initObjects() {
         for (int i = 0; i < solarSystem.objectNames.size(); i++) {
             String name = solarSystem.objectNames.get(i);
-            if(!name.equals(SolarSystem.KUIPER)) {
+            if(!name.equals(SolarSystem.KUIPER) && !name.equals(SolarSystem.SUN)) {
                 geos.put(name, createObject(name, name + ".jpg"));
             }
+            geos.put(SolarSystem.SUN, createSun(SolarSystem.SUN, SolarSystem.SUN + ".jpg"));
         }
     }
 
-    private Geometry createObject(String objectName, String textureName) {
+    private Geometry createSun(String objectName, String textureName) {
         Sphere sphere = new Sphere(32,32, 2f, true, false);
         Geometry geo = new Geometry(objectName, sphere);
 
@@ -147,7 +159,26 @@ public class App extends SimpleApplication {
         geo.setMaterial(material);
 
         transformObjet(geo, objectName);
+        return geo;
+    }
 
+    private Geometry createObject(String objectName, String textureName) {
+        Sphere sphere = new Sphere(32,32, 2f, true, false);
+        Geometry geo = new Geometry(objectName, sphere);
+
+        sphere.setTextureMode(Sphere.TextureMode.Projected);
+        TangentBinormalGenerator.generate(sphere);
+
+        Material material = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        String texturePath = "Textures/Objects";
+        material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "/" + textureName));
+        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
+        material.setColor("GlowColor", ColorRGBA.Black);// Controls shininess/reflection
+        material.setColor("Diffuse", ColorRGBA.White);
+        geo.setMaterial(material);
+
+        transformObjet(geo, objectName);
         return geo;
     }
 
@@ -327,8 +358,9 @@ public class App extends SimpleApplication {
         cam.setFrustumFar(1000000f);
         chaseCam = new ChaseCamera(cam, geos.get(SolarSystem.SUN), inputManager);
         chaseCam.setDragToRotate(true);
-        chaseCam.setMinVerticalRotation(-1f); 
-        chaseCam.setMaxVerticalRotation(1.5f);
+        chaseCam.setMinVerticalRotation(-1f);
+        chaseCam.setMaxVerticalRotation(1f);
+        chaseCam.setDefaultVerticalRotation(0.7f);
         adjustFocus(currentFocus);
     }
 
@@ -431,20 +463,20 @@ public class App extends SimpleApplication {
                 break;
             case SolarSystem.MOON:
             case SolarSystem.MERCURY:
-                adjustCamera(15f, 3f, 1000f, 20f);
+                adjustCamera(15f, 5f, 3000f, 20f);
                 break;
             case SolarSystem.KUIPER:
-                adjustCamera(1000f, 200f, 1500f, 50f);
+                adjustCamera(1000f, 200f, 3000f, 50f);
                 break;
             case SolarSystem.IO:
             case SolarSystem.EUROPA:
             case SolarSystem.PHOBOS:
             case SolarSystem.DEIMOS:
             case SolarSystem.PLUTO:
-                adjustCamera(4f, 2f, 20f, 1f);
+                adjustCamera(4f, 2f, 100f, 1f);
                 break;
             default:
-                adjustCamera(30f, 20f, 3000f, 30f);
+                adjustCamera(25f, 15f, 5000f, 30f);
                 break;
         }
     }
