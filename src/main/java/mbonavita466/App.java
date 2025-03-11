@@ -23,7 +23,7 @@ import com.jme3.util.TangentBinormalGenerator;
 
 import java.util.*;
 
-public class App extends SimpleApplication {
+public class Main extends SimpleApplication {
     private static SolarSystem solarSystem; // Accès aux données des astres
 
     private Dictionary<String, Geometry> geos = new Hashtable<>(); // Liste des astres
@@ -57,26 +57,23 @@ public class App extends SimpleApplication {
     private PointLight pointLight;
 
     public static void main(String[] args) {
-        App app = new App();
+        Main app = new Main();
         solarSystem = new SolarSystem();
         app.start();
     }
 
     @Override
     public void simpleInitApp() {
-        initLight();
-        initNodes();
-        initObjects();
+        initLight(); // Crée une source de lumière
+        initNodes(); // Crée un node pour chaque astre
+        initObjects(); // Crée les astres de la simulation
+        initOrbits(); // Crée les orbites
 
-        createSaturnRing();
-        createKuiperBelt();
+        attachNodes(); // Attache chaque astre à un node et attache les nodes entre eux
 
-        initOrbits();
-        attachNodes();
-
-        initCamera();
-        initKeys();
-        initText();
+        initCamera(); // Crée une chaseCam
+        initKeys(); // Crée les raccourcis claviers
+        initText(); // Initalise le texte à afficher dans l'interface
     }
 
     @Override
@@ -84,7 +81,9 @@ public class App extends SimpleApplication {
         if(isRunning) {
             for (String name : solarSystem.objectNames) {
                 if(!name.equals(SolarSystem.STARS) && !name.equals(SolarSystem.KUIPER)) {
+                    // Révolution des astres
                     nodes.get(name).rotate(0, tpf * timeScales.get(timeScale) * FastMath.PI * 2 / solarSystem.getRevolutionPeriod(name), 0);
+                    // Rotation des astres
                     geos.get(name).rotate(0, 0, tpf * timeScales.get(timeScale)  * FastMath.PI * 2 / solarSystem.getRotationPeriod(name));
                 }
             }
@@ -94,27 +93,34 @@ public class App extends SimpleApplication {
     private final ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean keyPressed, float tpf) {
+            // Active ou désactive la pause de la simulation
             if (name.equals("Pause") && !keyPressed) {
-                isRunning = !isRunning;
+                togglePause();
             }
+            // Dirige la caméra vers l'astre suivant
             if (name.equals("IncFocus") && !keyPressed) {
                 incFocus();
             }
+            // Dirige la caméra vers l'astre précédent
             if (name.equals("DecFocus") && !keyPressed) {
                 decFocus();
             }
+            // Cache le tracé des orbites
             if (name.equals("ToggleOrbitDisplay") && !keyPressed) {
                 toggleOrbitDisplay();
             }
+            // Augmente le temps de la simulation
             if (name.equals("IncTime") && !keyPressed) {
                 incTime();
             }
+            // Réduit le temps de la simulation
             if (name.equals("DecTime") && !keyPressed) {
                 decTime();
             }
         }
     };
 
+    
     private final AnalogListener analogListener = new AnalogListener() {
         @Override
         public void onAnalog(String name, float value, float tpf) {}
@@ -133,35 +139,35 @@ public class App extends SimpleApplication {
         }
     }
 
+    /*
+    * Création de tous les astres
+    */
     private void initObjects() {
+        // Planètes
         for (int i = 0; i < solarSystem.objectNames.size(); i++) {
             String name = solarSystem.objectNames.get(i);
-            if(!name.equals(SolarSystem.KUIPER) && !name.equals(SolarSystem.SUN)) {
+
+            if(!name.equals(SolarSystem.KUIPER) && !name.equals(SolarSystem.SUN) && !name.equals(SolarSystem.STARS)) {
                 geos.put(name, createObject(name, name + ".jpg"));
             }
-            geos.put(SolarSystem.SUN, createSun(SolarSystem.SUN, SolarSystem.SUN + ".jpg"));
         }
+
+        // Soleil
+        geos.put(SolarSystem.SUN, createStars(SolarSystem.SUN, SolarSystem.SUN + ".jpg"));
+
+        // Fond étoilé
+        geos.put(SolarSystem.STARS, createStars(SolarSystem.STARS, SolarSystem.STARS + ".jpg"));
+
+        // Anneaux de Saturne
+        createSaturnRing();
+        
+        // Ceinture de Kuiper
+        createKuiperBelt();
     }
 
-    private Geometry createSun(String objectName, String textureName) {
-        Sphere sphere = new Sphere(32,32, 2f, true, false);
-        Geometry geo = new Geometry(objectName, sphere);
-
-        sphere.setTextureMode(Sphere.TextureMode.Projected);
-        TangentBinormalGenerator.generate(sphere);
-
-        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        String texturePath = "Textures/Objects";
-        material.setTexture("ColorMap", assetManager.loadTexture(texturePath + "/" + textureName));
-        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-        material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
-        material.setColor("GlowColor", ColorRGBA.Black);// Controls shininess/reflection
-        geo.setMaterial(material);
-
-        transformObjet(geo, objectName);
-        return geo;
-    }
-
+    /*
+    * Création d'une planète
+    */
     private Geometry createObject(String objectName, String textureName) {
         Sphere sphere = new Sphere(32,32, 2f, true, false);
         Geometry geo = new Geometry(objectName, sphere);
@@ -174,8 +180,30 @@ public class App extends SimpleApplication {
         material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "/" + textureName));
         material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
-        material.setColor("GlowColor", ColorRGBA.Black);// Controls shininess/reflection
+        material.setColor("GlowColor", ColorRGBA.Black);
         material.setColor("Diffuse", ColorRGBA.White);
+        geo.setMaterial(material);
+
+        transformObjet(geo, objectName);
+        return geo;
+    }
+
+    /*
+    * Création du soleil et du fond étoilé
+    */
+    private Geometry createStars(String objectName, String textureName) {
+        Sphere sphere = new Sphere(32,32, 2f, true, false);
+        Geometry geo = new Geometry(objectName, sphere);
+
+        sphere.setTextureMode(Sphere.TextureMode.Projected);
+        TangentBinormalGenerator.generate(sphere);
+
+        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        String texturePath = "Textures/Objects";
+        material.setTexture("ColorMap", assetManager.loadTexture(texturePath + "/" + textureName));
+        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
+        material.setColor("GlowColor", ColorRGBA.Black);
         geo.setMaterial(material);
 
         transformObjet(geo, objectName);
@@ -408,6 +436,10 @@ public class App extends SimpleApplication {
         int size = (int)(solarSystem.getSize(name) * 10000f);
         if(name.equals(SolarSystem.PHOBOS)|| name.equals(SolarSystem.DEIMOS) || name.equals(SolarSystem.KUIPER)) size /= 10;
         sizeText.setText("Diameter : " + size + " km");
+    }
+
+    private void togglePause() {
+        isRunning = !isRunning;
     }
 
     private void incTime() {
