@@ -24,29 +24,49 @@ import com.jme3.util.TangentBinormalGenerator;
 import java.util.*;
 
 public class Main extends SimpleApplication {
-    private static SolarSystem solarSystem; // Accès aux données des astres
+    // Instance qui stocke les données des astres
+    private SolarSystem solarSystem;
 
-    private Dictionary<String, Geometry> geos = new Hashtable<>(); // Liste des astres
-    private Dictionary<String, Node> nodes = new Hashtable<>(); // Liste des nodes principaux
+    // Liste des Geometry des astres
+    private Dictionary<String, Geometry> geos = new Hashtable<>();
 
-    // Orbites
-    private Node orbitNode;
-    private List<Node> orbitNodes = new ArrayList<>();
-    private final int orbitRadialSamples = 256;
+    // Liste des nodes principaux (un pour chaque astre)
+    private Dictionary<String, Node> nodes = new Hashtable<>();
 
-    // Ceinture de Kuiper
+    /*
+     * Orbites
+     * Chaque orbite est un ensemble de lignes qui forment un cercle, avec une couleur, et stockée dans un node.
+     */
+    private List<Node> orbitNodes = new ArrayList<>(); // Un node pour chaque orbite
+    private Node orbitNode; // Node qui contient tous les nodes des orbites
+    private final int orbitResolution = 256; // Nombre de lignes créés pour chaque orbite
+
+    /* Ceinture de Kuiper
+     * Chaque astéroide est modélisé par une sphère, puis placé à une position aléatoire près de l'orbite.
+     * Je n'ai pas réussi à faire bouger les astéroides autour du Soleil.
+     */
     private Node kuiperNode;
-    Random random = new Random(); // Chaque astéroide a une position aléatoire
+    Random random = new Random(); //
 
-    // Camera
+    // Source de lumière
+    private PointLight pointLight;
+
+    // Caméra
     private ChaseCamera chaseCam;
-    private int currentFocus = 0;
+    private int currentFocus = 0; // Indique quel objet est regardé par la caméra
 
-    // Paramètres de la simulation
-    private Boolean isRunning = true;
-    private static int timeScale = 6;
-    private List<Float> timeScales = Arrays.asList(-1/5f, -1/10f, -1/60f, -1/360f, -1/720f, 1/720f, 1/360f, 1/60f, 1/20f, 1/5f);
-    private static Float distanceScale = 1f;
+    // Pause la simulation
+    private Boolean isRunning = true; // Pause
+
+    // Echelle de distance de la simulation
+    private Float distanceScale = 1f;
+    
+    /*
+     * Vitesses possibles de la simulation.
+     * La vitesse par défaut est à 1/360,
+     */
+    private List<Float> timeSpeeds = Arrays.asList(-1/5f, -1/10f, -1/60f, -1/360f, -1/720f, 1/720f, 1/360f, 1/60f, 1/20f, 1/5f);
+    private int currentTimeSpeedIndex = 6;
 
     // UI
     BitmapFont font;
@@ -54,26 +74,24 @@ public class Main extends SimpleApplication {
     BitmapText weightText;
     BitmapText sizeText;
 
-    private PointLight pointLight;
-
     public static void main(String[] args) {
         Main app = new Main();
-        solarSystem = new SolarSystem();
         app.start();
     }
 
     @Override
     public void simpleInitApp() {
-        initLight(); // Crée une source de lumière
-        initNodes(); // Crée un node pour chaque astre
-        initObjects(); // Crée les astres de la simulation
-        initOrbits(); // Crée les orbites
+        initData();
+        initLight();
+        initNodes();
+        initObjects();
+        initOrbits();
 
-        attachNodes(); // Attache chaque astre à un node et attache les nodes entre eux
+        attachNodes();
 
-        initCamera(); // Crée une chaseCam
-        initKeys(); // Crée les raccourcis claviers
-        initText(); // Initalise le texte à afficher dans l'interface
+        initCamera();
+        initKeys();
+        initText();
     }
 
     @Override
@@ -82,9 +100,9 @@ public class Main extends SimpleApplication {
             for (String name : solarSystem.objectNames) {
                 if(!name.equals(SolarSystem.STARS) && !name.equals(SolarSystem.KUIPER)) {
                     // Révolution des astres
-                    nodes.get(name).rotate(0, tpf * timeScales.get(timeScale) * FastMath.PI * 2 / solarSystem.getRevolutionPeriod(name), 0);
+                    nodes.get(name).rotate(0, tpf * timeSpeeds.get(currentTimeSpeedIndex) * FastMath.PI * 2 / solarSystem.getRevolutionPeriod(name), 0);
                     // Rotation des astres
-                    geos.get(name).rotate(0, 0, tpf * timeScales.get(timeScale)  * FastMath.PI * 2 / solarSystem.getRotationPeriod(name));
+                    geos.get(name).rotate(0, 0, tpf * timeSpeeds.get(currentTimeSpeedIndex)  * FastMath.PI * 2 / solarSystem.getRotationPeriod(name));
                 }
             }
         }
@@ -120,16 +138,19 @@ public class Main extends SimpleApplication {
         }
     };
 
-    
     private final AnalogListener analogListener = new AnalogListener() {
         @Override
         public void onAnalog(String name, float value, float tpf) {}
     };
 
+    private void initData() {
+        solarSystem = new SolarSystem();
+    }
+
     private void initLight() {
         pointLight = new PointLight();
         pointLight.setColor(ColorRGBA.White);
-        pointLight.setPosition(new Vector3f(-0.f, -0.f, -0.f));
+        pointLight.setPosition(new Vector3f(0f, 0f, 0f));
         rootNode.addLight(pointLight);
     }
 
@@ -140,8 +161,8 @@ public class Main extends SimpleApplication {
     }
 
     /*
-    * Création de tous les astres
-    */
+     * Création de tous les astres
+     */
     private void initObjects() {
         // Planètes
         for (int i = 0; i < solarSystem.objectNames.size(); i++) {
@@ -160,14 +181,14 @@ public class Main extends SimpleApplication {
 
         // Anneaux de Saturne
         createSaturnRing();
-        
+
         // Ceinture de Kuiper
         createKuiperBelt();
     }
 
     /*
-    * Création d'une planète
-    */
+     * Création d'une planète
+     */
     private Geometry createObject(String objectName, String textureName) {
         Sphere sphere = new Sphere(32,32, 2f, true, false);
         Geometry geo = new Geometry(objectName, sphere);
@@ -189,8 +210,8 @@ public class Main extends SimpleApplication {
     }
 
     /*
-    * Création du soleil et du fond étoilé
-    */
+     * Création du soleil et du fond étoilé
+     */
     private Geometry createStars(String objectName, String textureName) {
         Sphere sphere = new Sphere(32,32, 2f, true, false);
         Geometry geo = new Geometry(objectName, sphere);
@@ -211,14 +232,14 @@ public class Main extends SimpleApplication {
     }
 
     private void transformObjet(Geometry geo, String objectName) {
-       float size = solarSystem.getSize(objectName) * distanceScale;
-       float distance = solarSystem.getDistance(objectName) * distanceScale;
-       Float position = solarSystem.getPosition(objectName);
-       Vector3f rotation = solarSystem.getRotation(objectName);
+        float size = solarSystem.getSize(objectName) * distanceScale;
+        float distance = solarSystem.getDistance(objectName) * distanceScale;
+        Float position = solarSystem.getPosition(objectName);
+        Vector3f rotation = solarSystem.getRotation(objectName);
 
-       geo.scale(size, size, size);
-       geo.setLocalTranslation(FastMath.sin(position) * distance, 0, FastMath.cos(position) * distance);
-       geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
+        geo.scale(size, size, size);
+        geo.setLocalTranslation(FastMath.sin(position) * distance, 0, FastMath.cos(position) * distance);
+        geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
     }
 
     private void createSaturnRing() {
@@ -305,7 +326,7 @@ public class Main extends SimpleApplication {
 
         rootNode.attachChild(orbitNode);
     }
-    
+
     private void createOrbit(String objectName, Geometry parentObject, Node parentNode)
     {
         Node node = new Node(objectName + "orbit");
@@ -316,11 +337,11 @@ public class Main extends SimpleApplication {
         float y1;
         float y2;
 
-        for(int i = 0; i < orbitRadialSamples; i++) {
-            x1 = (float)Math.cos(2 * i * FastMath.PI / orbitRadialSamples) * distance;
-            y1 = (float)Math.sin(2 * i * FastMath.PI / orbitRadialSamples) * distance;
-            x2 = (float)Math.cos(2 * (i + 1) * FastMath.PI / orbitRadialSamples) * distance;
-            y2 = (float)Math.sin(2 * (i + 1) * FastMath.PI / orbitRadialSamples) * distance;
+        for(int i = 0; i < orbitResolution; i++) {
+            x1 = (float)Math.cos(2 * i * FastMath.PI / orbitResolution) * distance;
+            y1 = (float)Math.sin(2 * i * FastMath.PI / orbitResolution) * distance;
+            x2 = (float)Math.cos(2 * (i + 1) * FastMath.PI / orbitResolution) * distance;
+            y2 = (float)Math.sin(2 * (i + 1) * FastMath.PI / orbitResolution) * distance;
 
             Geometry orbitGeo = new Geometry("Line", new Line(new Vector3f(x1, 0, y1), new Vector3f(x2, 0, y2)));
             Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
@@ -330,7 +351,7 @@ public class Main extends SimpleApplication {
             orbitGeo.setLocalTranslation(parentObject.getLocalTranslation());
             node.attachChild(orbitGeo);
         }
-        
+
         parentNode.attachChild(node);
         orbitNodes.add(node);
     }
@@ -443,13 +464,13 @@ public class Main extends SimpleApplication {
     }
 
     private void incTime() {
-        timeScale++;
-        if(timeScale >= timeScales.size()) timeScale = 0;
+        currentTimeSpeedIndex++;
+        if(currentTimeSpeedIndex >= timeSpeeds.size()) currentTimeSpeedIndex = 0;
     }
 
     private void decTime() {
-        timeScale--;
-        if(timeScale < 0) timeScale = timeScales.size() - 1;
+        currentTimeSpeedIndex--;
+        if(currentTimeSpeedIndex < 0) currentTimeSpeedIndex = timeSpeeds.size() - 1;
     }
 
     private void incFocus() {
