@@ -11,10 +11,18 @@ import com.jme3.math.ColorRGBA;
 
 public class SolarSystem {
     /*
-     * Cette classe regroupe toutes les données des astres présents dans la simulation : nom, caractéristiques physiques, positions, etc.
-     * J'utilise des dictionnaires pour stocker les variables.
+     * Cette classe regroupe toutes les données des astres présents dans la simulation : nom, caractéristiques physiques, position, etc.
+     * La liste des astres comprend le soleil, les planètes et leurs satellites, les astéroides de la ceinture de Kuiper, et un objet qui représentera le fond de la scène.
+     * Dans la classe Main, tous les objets sont sous la forme de sphère.
+     *
+     * Les distances sont codées en dizaines de milliers de kilomètres.
+     * Les durées sont codées en jours terrestres.
+     *
+     * J'ai essayé de faire les échelles de temps et de distance le plus à l'échelle possible,
+     * sauf pour Phobos et Deimos qui ont une taille dix fois plus grande que dans la réalité, sinon on ne les voyait pas dans la scène.
      */
 
+    // Noms des objets
     public static final String SUN = "Sun";
     public static final String MERCURY = "Mercury";
     public static final String VENUS = "Venus";
@@ -41,23 +49,37 @@ public class SolarSystem {
     public final List<String> focusList = Arrays.asList(SUN, MERCURY, VENUS, EARTH, MOON, MARS, DEIMOS, PHOBOS,
             JUPITER, IO, EUROPA, SATURN, URANUS, NEPTUNE, PLUTO, KUIPER);
 
-    private final Dictionary<String, Float> size = new Hashtable<>(); // Diamètre de l'objet en dizaines de milliers de kilomètres
-    private final Dictionary<String, Float> position = new Hashtable<>(); // Angle sur l'orbite au départ de la simulation
-    private final Dictionary<String, Vector3f> rotation = new Hashtable<>(); // Rotation de l'objet au départ de la simulation
-    private final Dictionary<String, Float> distance = new Hashtable<>(); // Distance de révolution
-    private final Dictionary<String, Float> revolutionPeriod = new Hashtable<>(); // Durée de révolution
-    private final Dictionary<String, Float> rotationPeriod = new Hashtable<>(); // Durée de rotation
-    private final Dictionary<String, String> weight = new Hashtable<>(); // Poids de l'objet à afficher dans l'interface
-    private final Dictionary<String, ColorRGBA> color = new Hashtable<>(); // Couleur de l'orbite
+    // Diamètre
+    private final Dictionary<String, Float> size = new Hashtable<>();
+    // Angle sur l'orbite au départ de la simulation
+    private final Dictionary<String, Float> position = new Hashtable<>();
+    // Rotation  au départ de la simulation
+    private final Dictionary<String, Vector3f> rotation = new Hashtable<>();
+    // Distance de révolution
+    private final Dictionary<String, Float> distance = new Hashtable<>();
+    // Durée de révolution
+    private final Dictionary<String, Float> revolutionPeriod = new Hashtable<>();
+    // Durée de rotation
+    private final Dictionary<String, Float> rotationPeriod = new Hashtable<>();
+    // Poids de l'objet à afficher dans l'interface
+    private final Dictionary<String, String> weight = new Hashtable<>();
+    // Couleur de l'orbite
+    private final Dictionary<String, ColorRGBA> color = new Hashtable<>();
 
     // Ceinture de Kuiper
-    public final int kuiperQuantity = 512; // Nombre d'astéroides
-    public final float kuiperScale = 50f; // Distance à laquelle les astéroides sont éloignés les uns des autres
+
+    // Nombres d'astéroides
+    public final int kuiperQuantity = 512;
+    // Distance à laquelle les astéroides sont éloignés les uns des autres
+    public final float kuiperScale = 50f;
 
     // Anneaux de Saturne
     public final float saturnRingWidth = 7f;
     public final float saturnRingDistance = 40f;
 
+    /*
+     * Initialisation de toutes les données.
+     */
     public SolarSystem() {
         initObjectData(SUN, 139f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 0f, 1f, 30f, "1.939 * 10^30", ColorRGBA.Yellow);
         initObjectData(MERCURY, 0.488f, FastMath.PI / 2, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 579f, 88f, 59f, "3.301 * 10^23", ColorRGBA.Pink);
@@ -78,6 +100,9 @@ public class SolarSystem {
         initObjectData(STARS, 200000f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 0f, 1f, 1f, "", ColorRGBA.White);
     }
 
+    /*
+     * Initialisation des données d'un objet.
+     */
     private void initObjectData(String objectName, Float s, Float p, Vector3f r, Float d, Float rev, Float rot, String w, ColorRGBA c) {
         size.put(objectName, s);
         position.put(objectName, p);
