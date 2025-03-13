@@ -13,6 +13,6 @@ Echelles
 J'ai essayé de faire des échelles de temps et de distance qui correspondent le plus à la réalité, sauf pour Phobos et Deimos qui ont une taille dix fois plus grande que prévue car autrement on ne les voyait pas dans la scène. 
 Les distances sont codées en dizaines de milliers de kilomètres et les durées sont codées en jours terrestres.
 
-Fonctionnalités manquantes :
+Fonctionnalités manquantes
 - Pouvoir réafficher les orbites après les avoir cachées
 - Les astéroïdes de la ceinture de Kuiper ne bougent pas car je n'ai pas réussi à les faire tourner autour du Soleil
