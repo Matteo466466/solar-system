@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.solar</groupId>
+  <artifactId>solar-system</artifactId>
+  <name>Solar System</name>
+  <version>1.0</version>
+  <description>A Java project for a solar system simulation</description>
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>mbonavita.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.plugin.assembly.version>3.7.1</maven.plugin.assembly.version>
+    <jme3_g>org.jmonkeyengine</jme3_g>
+    <javadoc.opts>-Xdoclint:none --allow-script-in-comments</javadoc.opts>
+    <maven.plugin.javadoc.version>3.11.2</maven.plugin.javadoc.version>
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.plugin.source.version>3.3.1</maven.plugin.source.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <jme3_v>3.6.1-stable</jme3_v>
+    <maven.plugin.release.version>3.1.1</maven.plugin.release.version>
+    <maven.plugin.compiler.version>3.13.0</maven.plugin.compiler.version>
+  </properties>
+</project>

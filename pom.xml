@@ -1,16 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-	<groupId>mbonavita466</groupId>
-	<artifactId>jmonkey</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
-	<packaging>jar</packaging>
+    <groupId>com.solar</groupId>
+    <artifactId>solar-system</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
 
-	<name>Solar System</name>
-	<description>Solar System</description>
-  
-	<properties>
+    <name>Solar System</name>
+    <description>A Java project for a solar system simulation</description>
+
+    <properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		
 		<javadoc.opts>-Xdoclint:none --allow-script-in-comments</javadoc.opts>
@@ -27,12 +28,54 @@
 		<maven.plugin.javadoc.version>3.11.2</maven.plugin.javadoc.version>
 		<maven.plugin.release.version>3.1.1</maven.plugin.release.version>
 		<maven.plugin.source.version>3.3.1</maven.plugin.source.version>	
-        <maven.plugin.assembly.version>3.7.1</maven.plugin.assembly.version>		
-	</properties>
+        <maven.plugin.assembly.version>3.7.1</maven.plugin.assembly.version>
+    </properties>
 
-  
-	<dependencies>
-  
+    <build>
+        <plugins>
+            <!-- Java Compiler Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+
+            <!-- JAR Plugin with Main-Class -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>mbonavita.Main</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Shade Plugin for Fat JAR (if needed) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
 		<!-- JMonkeyEngine -->   
 		<dependency>
 			<groupId>${jme3_g}</groupId>
@@ -106,83 +149,4 @@
 			<version>${jme3_v}</version>
 		</dependency>	
 	</dependencies>
-  
-	<build>
-		<plugins>
-
-			<!--  Compile sources -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>${maven.plugin.compiler.version}</version>
-					<configuration>
-						<release>${maven.compiler.release}</release>
-						<source>${maven.compiler.source}</source>
-						<target>${maven.compiler.target}</target>
-					</configuration>
-				</plugin>
-		
-			<!-- Generate sources jar during package phase equivalent to maven sources:jar -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>${maven.plugin.source.version}</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-	
-			<!-- Generate apidoc jar during package phaseequivalent to maven javadoc:jar -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>${maven.plugin.javadoc.version}</version>
-
-				<!-- Embedding Latex formulas within javadoc using MathJax-->
-				<configuration>
-
-					<additionalJOptions>
-						<additionalJOption>--allow-script-in-comments</additionalJOption>
-					</additionalJOptions>
-					<header>'&lt;script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"&gt;&lt;/script&gt;'</header>
-				</configuration>  
-  
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-	 
-			<!-- Software distribution -->
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.3.0</version>
-				<executions>
-					<execution>
-						<id>distro-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					
-						<configuration>
-							<descriptors>
-								<descriptor>src/assembly/dep.xml</descriptor>
-							</descriptors>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
-
 </project>
