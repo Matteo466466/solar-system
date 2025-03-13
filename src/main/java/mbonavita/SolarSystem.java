@@ -9,20 +9,12 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.math.ColorRGBA;
 
+/**
+ * Stocke toutes les données des astres.
+ * Pour la plupart des données, utilise des dictionnaires avec comme clés d'indexage les noms des astres.
+ */
 public class SolarSystem {
-    /*
-     * Cette classe regroupe toutes les données des astres présents dans la simulation : nom, caractéristiques physiques, position, etc.
-     * La liste des astres comprend le soleil, les planètes et leurs satellites, les astéroides de la ceinture de Kuiper, et un objet qui représentera le fond de la scène.
-     * Dans la classe Main, tous les objets sont sous la forme de sphère.
-     *
-     * Les distances sont codées en dizaines de milliers de kilomètres.
-     * Les durées sont codées en jours terrestres.
-     *
-     * J'ai essayé de faire les échelles de temps et de distance le plus à l'échelle possible,
-     * sauf pour Phobos et Deimos qui ont une taille dix fois plus grande que dans la réalité, sinon on ne les voyait pas dans la scène.
-     */
-
-    // Noms des objets
+    // Noms des astres
     public static final String SUN = "Sun";
     public static final String MERCURY = "Mercury";
     public static final String VENUS = "Venus";
@@ -39,9 +31,9 @@ public class SolarSystem {
     public static final String NEPTUNE = "Neptune";
     public static final String PLUTO = "Pluto";
     public static final String KUIPER = "Kuiper";
-    public static final String STARS = "Stars";
+    public static final String STARS = "Stars"; // Fond de la scène 3D
 
-    // Liste des astres dans la simulation
+    // Liste des astres qui seront simulés
     public final List<String> objectNames = Arrays.asList(STARS, SUN, MERCURY, VENUS, EARTH, MOON, MARS, DEIMOS,
             PHOBOS, JUPITER, IO, EUROPA, SATURN, URANUS, NEPTUNE, PLUTO, KUIPER);
 
@@ -51,34 +43,38 @@ public class SolarSystem {
 
     // Diamètre
     private final Dictionary<String, Float> size = new Hashtable<>();
+    
     // Angle sur l'orbite au départ de la simulation
     private final Dictionary<String, Float> position = new Hashtable<>();
-    // Rotation  au départ de la simulation
+
+    // Rotation de l'astre sur lui-même au départ de la simulation
     private final Dictionary<String, Vector3f> rotation = new Hashtable<>();
+
     // Distance de révolution
     private final Dictionary<String, Float> distance = new Hashtable<>();
+
     // Durée de révolution
     private final Dictionary<String, Float> revolutionPeriod = new Hashtable<>();
+
     // Durée de rotation
     private final Dictionary<String, Float> rotationPeriod = new Hashtable<>();
-    // Poids de l'objet à afficher dans l'interface
+
+    // Masse de l'astre à afficher dans l'interface
     private final Dictionary<String, String> weight = new Hashtable<>();
-    // Couleur de l'orbite
+
+    // Couleur de l'orbite affichée
     private final Dictionary<String, ColorRGBA> color = new Hashtable<>();
 
     // Ceinture de Kuiper
-
-    // Nombres d'astéroides
-    public final int kuiperQuantity = 512;
-    // Distance à laquelle les astéroides sont éloignés les uns des autres
-    public final float kuiperScale = 50f;
+    public final int kuiperQuantity = 512; // Nombre total d'astéroides
+    public final float kuiperScale = 50f; // Distance à laquelle les astéroides sont éloignés les uns des autres
 
     // Anneaux de Saturne
     public final float saturnRingWidth = 7f;
     public final float saturnRingDistance = 40f;
 
-    /*
-     * Initialisation de toutes les données.
+    /**
+     * Initalise les données de tous les astres.
      */
     public SolarSystem() {
         initObjectData(SUN, 139f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 0f, 1f, 30f, "1.939 * 10^30", ColorRGBA.Yellow);
@@ -100,8 +96,8 @@ public class SolarSystem {
         initObjectData(STARS, 200000f, 0f, new Vector3f(-FastMath.HALF_PI, 0f, 0f), 0f, 1f, 1f, "", ColorRGBA.White);
     }
 
-    /*
-     * Initialisation des données d'un objet.
+    /**
+     * Initalise les données d'un astre.
      */
     private void initObjectData(String objectName, Float s, Float p, Vector3f r, Float d, Float rev, Float rot, String w, ColorRGBA c) {
         size.put(objectName, s);
@@ -113,6 +109,8 @@ public class SolarSystem {
         weight.put(objectName, w);
         color.put(objectName, c);
     }
+
+    // Getters
 
     public Float getSize(String objectName) {
         return size.get(objectName);

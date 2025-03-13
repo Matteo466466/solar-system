@@ -23,8 +23,11 @@ import com.jme3.util.TangentBinormalGenerator;
 
 import java.util.*;
 
+/**
+ * Crée une simulation 3D du système solaire.
+ */
 public class Main extends SimpleApplication {
-    // Instance qui stocke les données des astres
+    // Objet qui stocke les données de tous les astres
     private SolarSystem solarSystem;
 
     // Liste des Geometry des astres
@@ -35,37 +38,38 @@ public class Main extends SimpleApplication {
 
     /*
      * Orbites
-     * Chaque orbite est un ensemble de lignes qui forment un cercle, avec une couleur, et stockée dans un node.
+     * Chaque orbite est un ensemble de lignes formant un cercle, avec une couleur et stockées dans un node.
      */
     private List<Node> orbitNodes = new ArrayList<>(); // Un node pour chaque orbite
-    private Node orbitNode; // Node qui contient tous les nodes des orbites
-    private final int orbitResolution = 256; // Nombre de lignes créés pour chaque orbite
+    private Node orbitNode; // Node parent des nodes des orbites
+    private final int orbitResolution = 256; // Nombre de lignes utilisées pour chaque orbite
 
-    /* Ceinture de Kuiper
+    /*
+     * Ceinture de Kuiper
      * Chaque astéroide est modélisé par une sphère, puis placé à une position aléatoire près de l'orbite.
-     * Je n'ai pas réussi à faire bouger les astéroides autour du Soleil.
      */
     private Node kuiperNode;
-    Random random = new Random(); //
+    Random random = new Random();
 
     // Source de lumière
     private PointLight pointLight;
 
     // Caméra
     private ChaseCamera chaseCam;
-    private int currentFocus = 0; // Indique quel objet est regardé par la caméra
+    private int currentFocus = 0; // Indique quel objet est regardé par la caméra (par défaut le Soleil)
 
     // Pause la simulation
-    private Boolean isRunning = true; // Pause
+    private Boolean isRunning = true;
 
     // Echelle de distance de la simulation
     private Float distanceScale = 1f;
     
     /*
      * Vitesses possibles de la simulation.
-     * La vitesse par défaut est à 1/360,
+     * La vitesse par défaut est à 1 seconde = 1 jour (1/360),
+     * et peut aller de 1 seconde = 12 heures (1/720) à 1 seconde = 60 jours (1/6).
      */
-    private List<Float> timeSpeeds = Arrays.asList(-1/5f, -1/10f, -1/60f, -1/360f, -1/720f, 1/720f, 1/360f, 1/60f, 1/20f, 1/5f);
+    private List<Float> timeSpeeds = Arrays.asList(-1/5f, -1/10f, -1/60f, -1/360f, -1/720f, 1/720f, 1/360f, 1/60f, 1/30f, 1/6f);
     private int currentTimeSpeedIndex = 6;
 
     // UI
@@ -74,11 +78,22 @@ public class Main extends SimpleApplication {
     BitmapText weightText;
     BitmapText sizeText;
 
+    // Noms des actions possibles de l'utilisateur
+    String pauseString = "Pause";
+    String incTimeString = "IncTime";
+    String decTimeString = "DecTime";
+    String incFocusString = "IncFocus";
+    String decFocuString = "DecFocus";
+    String orbitString = "DisableOrbits";
+
     public static void main(String[] args) {
         Main app = new Main();
         app.start();
     }
 
+    /**
+     * Crée tous les objets et les nodes de la simulation, initialise la caméra, les raccourcis claviers et l'UI.
+     */
     @Override
     public void simpleInitApp() {
         initData();
@@ -86,67 +101,22 @@ public class Main extends SimpleApplication {
         initNodes();
         initObjects();
         initOrbits();
-
         attachNodes();
-
         initCamera();
         initKeys();
         initText();
     }
 
-    @Override
-    public void simpleUpdate(float tpf) {
-        if(isRunning) {
-            for (String name : solarSystem.objectNames) {
-                if(!name.equals(SolarSystem.STARS) && !name.equals(SolarSystem.KUIPER)) {
-                    // Révolution des astres
-                    nodes.get(name).rotate(0, tpf * timeSpeeds.get(currentTimeSpeedIndex) * FastMath.PI * 2 / solarSystem.getRevolutionPeriod(name), 0);
-                    // Rotation des astres
-                    geos.get(name).rotate(0, 0, tpf * timeSpeeds.get(currentTimeSpeedIndex)  * FastMath.PI * 2 / solarSystem.getRotationPeriod(name));
-                }
-            }
-        }
-    }
-
-    private final ActionListener actionListener = new ActionListener() {
-        @Override
-        public void onAction(String name, boolean keyPressed, float tpf) {
-            // Active ou désactive la pause de la simulation
-            if (name.equals("Pause") && !keyPressed) {
-                togglePause();
-            }
-            // Dirige la caméra vers l'astre suivant
-            if (name.equals("IncFocus") && !keyPressed) {
-                incFocus();
-            }
-            // Dirige la caméra vers l'astre précédent
-            if (name.equals("DecFocus") && !keyPressed) {
-                decFocus();
-            }
-            // Cache le tracé des orbites
-            if (name.equals("ToggleOrbitDisplay") && !keyPressed) {
-                toggleOrbitDisplay();
-            }
-            // Augmente le temps de la simulation
-            if (name.equals("IncTime") && !keyPressed) {
-                incTime();
-            }
-            // Réduit le temps de la simulation
-            if (name.equals("DecTime") && !keyPressed) {
-                decTime();
-            }
-        }
-    };
-
-    private final AnalogListener analogListener = new AnalogListener() {
-        @Override
-        public void onAnalog(String name, float value, float tpf) {}
-    };
-
+    /**
+     * Initialise les données du système solaire.
+     */
     private void initData() {
         solarSystem = new SolarSystem();
     }
 
+    /**
+     * Crée une source de lumière à l'endroit du soleil.
+     */
     private void initLight() {
         pointLight = new PointLight();
         pointLight.setColor(ColorRGBA.White);
@@ -154,30 +124,26 @@ public class Main extends SimpleApplication {
         rootNode.addLight(pointLight);
     }
 
+    /**
+     * Crée un node pour chaque astre et les stocke dans le dictionnaire nodes.
+     */
     private void initNodes() {
         for (String name : solarSystem.objectNames) {
             nodes.put(name, new Node(name + "Node"));
         }
     }
 
-    /*
-     * Création de tous les astres
+    /**
+     * Crée, affiche et transforme tous les objets du système solaire.
+     * Les Geometry de chaque objet (sauf les anneaux de Saturne et la ceinture de Kuiper) sont stockés dans le dictionnaire geos.
      */
     private void initObjects() {
-        // Planètes
-        for (int i = 0; i < solarSystem.objectNames.size(); i++) {
-            String name = solarSystem.objectNames.get(i);
-
-            if(!name.equals(SolarSystem.KUIPER) && !name.equals(SolarSystem.SUN) && !name.equals(SolarSystem.STARS)) {
+        // Planètes, Soleil et fond 3D
+        for (String name : solarSystem.objectNames) {
+            if(!name.equals(SolarSystem.KUIPER)) {
                 geos.put(name, createObject(name, name + ".jpg"));
             }
         }
-
-        // Soleil
-        geos.put(SolarSystem.SUN, createStars(SolarSystem.SUN, SolarSystem.SUN + ".jpg"));
-
-        // Fond étoilé
-        geos.put(SolarSystem.STARS, createStars(SolarSystem.STARS, SolarSystem.STARS + ".jpg"));
 
         // Anneaux de Saturne
         createSaturnRing();
@@ -186,51 +152,43 @@ public class Main extends SimpleApplication {
         createKuiperBelt();
     }
 
-    /*
-     * Création d'une planète
+    /**
+     * Crée et affiche un astre à partir d'une sphère et d'une texture, puis transforme et retourne le Geometry.
      */
     private Geometry createObject(String objectName, String textureName) {
+        Material material;
+        String texturePath = "Textures/Objects";
         Sphere sphere = new Sphere(32,32, 2f, true, false);
         Geometry geo = new Geometry(objectName, sphere);
 
         sphere.setTextureMode(Sphere.TextureMode.Projected);
         TangentBinormalGenerator.generate(sphere);
 
-        Material material = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        String texturePath = "Textures/Objects";
-        material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "/" + textureName));
+        // La texture du Soleil et du fond 3D doit être lumineuse
+        if(objectName.equals(SolarSystem.SUN) || objectName.equals(SolarSystem.STARS)) {
+            material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+            material.setTexture("ColorMap", assetManager.loadTexture(texturePath + "/" + textureName));
+        }
+        // Les planètes n'émettent pas de lumière
+        else {
+            material = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+            material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "/" + textureName));
+            material.setColor("Diffuse", ColorRGBA.White);
+        }
+
+        material.setColor("GlowColor", ColorRGBA.Black);
         material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
-        material.setColor("GlowColor", ColorRGBA.Black);
-        material.setColor("Diffuse", ColorRGBA.White);
-        geo.setMaterial(material);
-
+        
+        geo.setMaterial(material);  
         transformObjet(geo, objectName);
+
         return geo;
     }
 
-    /*
-     * Création du soleil et du fond étoilé
+    /**
+     * Donne une taille, une position et une rotation de départ à l'objet.
      */
-    private Geometry createStars(String objectName, String textureName) {
-        Sphere sphere = new Sphere(32,32, 2f, true, false);
-        Geometry geo = new Geometry(objectName, sphere);
-
-        sphere.setTextureMode(Sphere.TextureMode.Projected);
-        TangentBinormalGenerator.generate(sphere);
-
-        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        String texturePath = "Textures/Objects";
-        material.setTexture("ColorMap", assetManager.loadTexture(texturePath + "/" + textureName));
-        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-        material.getAdditionalRenderState().setFaceCullMode(com.jme3.material.RenderState.FaceCullMode.Off);
-        material.setColor("GlowColor", ColorRGBA.Black);
-        geo.setMaterial(material);
-
-        transformObjet(geo, objectName);
-        return geo;
-    }
-
     private void transformObjet(Geometry geo, String objectName) {
         float size = solarSystem.getSize(objectName) * distanceScale;
         float distance = solarSystem.getDistance(objectName) * distanceScale;
@@ -242,6 +200,10 @@ public class Main extends SimpleApplication {
         geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
     }
 
+    /**
+     * Crée et affiche les anneaux de Saturne en utilisant un tore aplati (avec 2 faces seulement),
+     * puis transforme l'objet et l'attache au même node que celui de Saturne.
+     */
     private void createSaturnRing() {
         String parentObjectName = SolarSystem.SATURN;
         String textureName = "Textures/Objects/Saturnring.jpg";
@@ -259,6 +221,13 @@ public class Main extends SimpleApplication {
         nodes.get(parentObjectName).attachChild(torusGeo);
     }
 
+    /**
+     * Crée et affiche les astéroïdes de la ceinture de Kuiper.
+     * Tout autour de l'orbite, des sphères sont créées, chacune à une position aléatoire près de l'orbite.
+     * 
+     * J'ai décidé de ne placer les astéroïdes que sur une partie de l'orbite,
+     * car pour en placer sur tout le tour il aurait fallu créer trop d'objets en mémoire.
+     */
     private void createKuiperBelt() {
         String objectName = SolarSystem.KUIPER;
         kuiperNode = new Node("kuiperNode");
@@ -274,14 +243,16 @@ public class Main extends SimpleApplication {
         float z;
 
         for (int i = 0; i < quantity; i++) {
-            x = (float)Math.cos(i * FastMath.PI / (quantity * 8)) * distance;
+            // Position aléatoire de l'astéroïde
+            x = (float)Math.cos(i * FastMath.PI / (quantity * 4)) * distance;
             y = 0;
-            z = (float)Math.sin(i * FastMath.PI / (quantity * 8)) * distance;
+            z = (float)Math.sin(i * FastMath.PI / (quantity * 4)) * distance;
 
             x += (random.nextFloat() * scale * 2) - scale;
             y += (random.nextFloat() * scale * 2) - scale;
             z += (random.nextFloat() * scale * 2) - scale;
 
+            // Création de l'astéroïde
             Sphere sphere = new Sphere(32,32, 2f, true, false);
             Geometry geo = new Geometry(objectName, sphere);
 
@@ -297,10 +268,14 @@ public class Main extends SimpleApplication {
             geo.scale(size, size, size);
             geo.setLocalTranslation(x * distanceScale, y * distanceScale, z * distanceScale);
             geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
+
+            // On attache l'astéroïde au node de la ceinture de Kuiper
             kuiperNode.attachChild(geo);
 
+            // On stocke l'astéroïde du milieu dans le dictionnaire geos.
             if(i == (quantity / 2)) geos.put(SolarSystem.KUIPER, geo);
         }
+        
         kuiperNode.setLocalTranslation(geos.get("Sun").getLocalTranslation());
         rootNode.attachChild(kuiperNode);
         nodes.put(SolarSystem.KUIPER, kuiperNode);
@@ -403,6 +378,10 @@ public class Main extends SimpleApplication {
         rootNode.attachChild(nodes.get("Sun"));
     }
 
+    /**
+     * Initialise une chaseCam pour pouvoir observer chaque astre. La caméra est dirigée vers le Soleil par défaut.
+     * Il est possible de pivoter l'angle de vue avec le clic de la souris.
+     */
     private void initCamera() {
         cam.setFrustumFar(1000000f);
         chaseCam = new ChaseCamera(cam, geos.get(SolarSystem.SUN), inputManager);
@@ -410,96 +389,26 @@ public class Main extends SimpleApplication {
         chaseCam.setMinVerticalRotation(-1f);
         chaseCam.setMaxVerticalRotation(1f);
         chaseCam.setDefaultVerticalRotation(0.7f);
-        adjustFocus(currentFocus);
+        adjustFocus(currentFocus); // Ajuste la distance et le zoom
     }
 
-    private void initKeys() {
-        inputManager.addMapping("Pause",  new KeyTrigger(KeyInput.KEY_P));
-        inputManager.addMapping("IncFocus",  new KeyTrigger(KeyInput.KEY_RIGHT));
-        inputManager.addMapping("DecFocus",  new KeyTrigger(KeyInput.KEY_LEFT));
-        inputManager.addMapping("ToggleOrbitDisplay",  new KeyTrigger(KeyInput.KEY_SPACE));
-        inputManager.addMapping("IncTime",  new KeyTrigger(KeyInput.KEY_UP));
-        inputManager.addMapping("DecTime",  new KeyTrigger(KeyInput.KEY_DOWN));
-
-        inputManager.addListener(actionListener, "Pause");
-        inputManager.addListener(actionListener, "IncFocus");
-        inputManager.addListener(actionListener, "DecFocus");
-        inputManager.addListener(actionListener, "ToggleOrbitDisplay");
-        inputManager.addListener(actionListener, "IncTime");
-        inputManager.addListener(actionListener, "DecTime");
+    /**
+     * Change la distance, le niveau de zoom et la vitesse de zoom de la caméra.
+     */
+    private void adjustCamera(float defaultDistance, float minDistance, float maxDistance, float zoomSpeed)
+    {
+        chaseCam.setDefaultDistance(defaultDistance);
+        chaseCam.setMinDistance(minDistance);
+        chaseCam.setMaxDistance(maxDistance);
+        chaseCam.setZoomSensitivity(zoomSpeed);
     }
 
-    private void initText() {
-        font = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        nameText = createText(30, 450, 120);
-        sizeText = createText(14, 450, 80);
-        weightText = createText(14, 450, 60);
-        displayText(currentFocus);
-    }
-
-    private BitmapText createText(float fontSize, float x, float y) {
-        BitmapText text = new BitmapText(font);
-        text.setText("");
-        text.setSize(fontSize);
-        text.setLocalTranslation(x, y, 0);
-        guiNode.attachChild(text);
-        return text;
-    }
-
-    private void displayText(int currentFocus) {
-        String name = solarSystem.focusList.get(currentFocus);
-
-        nameText.setText(name);
-        if(name.equals(SolarSystem.KUIPER)) nameText.setText("Kuiper's Belt");
-
-        weightText.setText("Weight : " + solarSystem.getWeight(name) + " kg");
-
-        int size = (int)(solarSystem.getSize(name) * 10000f);
-        if(name.equals(SolarSystem.PHOBOS)|| name.equals(SolarSystem.DEIMOS) || name.equals(SolarSystem.KUIPER)) size /= 10;
-        sizeText.setText("Diameter : " + size + " km");
-    }
-
-    private void togglePause() {
-        isRunning = !isRunning;
-    }
-
-    private void incTime() {
-        currentTimeSpeedIndex++;
-        if(currentTimeSpeedIndex >= timeSpeeds.size()) currentTimeSpeedIndex = 0;
-    }
-
-    private void decTime() {
-        currentTimeSpeedIndex--;
-        if(currentTimeSpeedIndex < 0) currentTimeSpeedIndex = timeSpeeds.size() - 1;
-    }
-
-    private void incFocus() {
-        currentFocus++;
-        if(currentFocus >= solarSystem.focusList.size()) currentFocus = 0;
-        chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
-        displayText(currentFocus);
-        adjustFocus(currentFocus);
-    }
-
-    private void decFocus() {
-        currentFocus--;
-        if(currentFocus < 0) currentFocus = solarSystem.focusList.size() - 1;
-        chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
-        displayText(currentFocus);
-        adjustFocus(currentFocus);
-    }
-
-    private void toggleOrbitDisplay() {
-        disableOrbitDisplay();
-    }
-
-    private void disableOrbitDisplay() {
-        for (Node node : orbitNodes) {
-            Node parent = node.getParent();
-            if (parent != null) parent.detachChild(node);
-        }
-    }
-
+    /**
+     * Change les paramètres de la caméra en fonction de l'astre observé.
+     * 
+     * Comme les tailles et les distances varient beaucoup, par exemple entre Jupiter et Phobos,
+     * il faut ajuster la distance de la caméra par rapport à l'astre, la vitesse et le niveau de zoom.
+     */
     private void adjustFocus(int focus)
     {
         String name = solarSystem.focusList.get(focus);
@@ -534,11 +443,160 @@ public class Main extends SimpleApplication {
         }
     }
 
-    private void adjustCamera(float defaultDistance, float minDistance, float maxDistance, float zoomSpeed)
-    {
-        chaseCam.setDefaultDistance(defaultDistance);
-        chaseCam.setMinDistance(minDistance);
-        chaseCam.setMaxDistance(maxDistance);
-        chaseCam.setZoomSensitivity(zoomSpeed);
+    /**
+     * Affiche l'astre suivant.
+     */
+    private void incFocus() {
+        currentFocus++;
+        if(currentFocus >= solarSystem.focusList.size()) currentFocus = 0;
+        chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
+        displayText(currentFocus);
+        adjustFocus(currentFocus);
     }
+
+    /**
+     * Affiche l'astre précédent.
+     */
+    private void decFocus() {
+        currentFocus--;
+        if(currentFocus < 0) currentFocus = solarSystem.focusList.size() - 1;
+        chaseCam.setSpatial(geos.get(solarSystem.focusList.get(currentFocus)));
+        displayText(currentFocus);
+        adjustFocus(currentFocus);
+    }
+
+    /**
+     * Initialise les textes affichés à l'écran.
+     */
+    private void initText() {
+        font = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        nameText = createText(30, 450, 120);
+        sizeText = createText(14, 450, 80);
+        weightText = createText(14, 450, 60);
+        displayText(currentFocus);
+    }
+
+    /**
+     * Crée, affiche et retourne un BitmapText avec une position et une police d'écriture.
+     */
+    private BitmapText createText(float fontSize, float x, float y) {
+        BitmapText text = new BitmapText(font);
+        text.setText("");
+        text.setSize(fontSize);
+        text.setLocalTranslation(x, y, 0);
+        guiNode.attachChild(text);
+        return text;
+    }
+
+    /**
+     * Affiche les informations d'un astre à l'écran.
+     */
+    private void displayText(int currentFocus) {
+        // Nom de l'astre
+        String name = solarSystem.focusList.get(currentFocus);
+        nameText.setText(name);
+        if(name.equals(SolarSystem.KUIPER)) nameText.setText("Kuiper's Belt");
+
+        // Masse
+        weightText.setText("Weight : " + solarSystem.getWeight(name) + " kg");
+
+        // Taille
+        // La taille doit être divisée par 10 pour Phobos et Deimos
+        int size = (int)(solarSystem.getSize(name) * 10000f);
+        if(name.equals(SolarSystem.PHOBOS)|| name.equals(SolarSystem.DEIMOS) || name.equals(SolarSystem.KUIPER)) size /= 10;
+        sizeText.setText("Diameter : " + size + " km");
+    }
+
+    /**
+     * Active/désactive la pause de la simulation.
+     */
+    private void togglePause() {
+        isRunning = !isRunning;
+    }
+
+    /**
+     * Augmente la vitesse de la simulation.
+     */
+    private void incTime() {
+        currentTimeSpeedIndex++;
+        if(currentTimeSpeedIndex >= timeSpeeds.size()) currentTimeSpeedIndex = 0;
+    }
+
+    /**
+     * Réduit la vitesse de la simulation.
+     */
+    private void decTime() {
+        currentTimeSpeedIndex--;
+        if(currentTimeSpeedIndex < 0) currentTimeSpeedIndex = timeSpeeds.size() - 1;
+    }
+
+    /**
+     * Désactive l'affichage des orbites.
+     */
+    private void disableOrbits() {
+        for (Node node : orbitNodes) {
+            Node parent = node.getParent();
+            if (parent != null) parent.detachChild(node);
+        }
+    }
+    
+    /**
+     * Fait tourner chaque astre autour du Soleil et sur lui-même.
+     */
+    @Override
+    public void simpleUpdate(float tpf) {
+        if(isRunning) {
+            for (String name : solarSystem.objectNames) {
+                if(!name.equals(SolarSystem.STARS) && !name.equals(SolarSystem.KUIPER)) {
+                    // Révolution des astres
+                    nodes.get(name).rotate(0, tpf * timeSpeeds.get(currentTimeSpeedIndex) * FastMath.PI * 2 / solarSystem.getRevolutionPeriod(name), 0);
+                    // Rotation des astres
+                    geos.get(name).rotate(0, 0, tpf * timeSpeeds.get(currentTimeSpeedIndex)  * FastMath.PI * 2 / solarSystem.getRotationPeriod(name));
+                }
+            }
+        }
+    }
+
+    /**
+     * Initialise les raccourcis claviers.
+     */
+    private void initKeys() {
+        inputManager.addMapping(pauseString,  new KeyTrigger(KeyInput.KEY_P));
+        inputManager.addMapping(incTimeString,  new KeyTrigger(KeyInput.KEY_UP));
+        inputManager.addMapping(decTimeString,  new KeyTrigger(KeyInput.KEY_DOWN));
+        inputManager.addMapping(incFocusString,  new KeyTrigger(KeyInput.KEY_RIGHT));
+        inputManager.addMapping(decFocuString,  new KeyTrigger(KeyInput.KEY_LEFT));
+        inputManager.addMapping(orbitString,  new KeyTrigger(KeyInput.KEY_SPACE));
+
+        inputManager.addListener(actionListener, pauseString);
+        inputManager.addListener(actionListener, incTimeString);
+        inputManager.addListener(actionListener, decTimeString);
+        inputManager.addListener(actionListener, incFocusString);
+        inputManager.addListener(actionListener, decFocuString);
+        inputManager.addListener(actionListener, orbitString);
+    }
+
+    private final ActionListener actionListener = new ActionListener() {
+        @Override
+        public void onAction(String name, boolean keyPressed, float tpf) {
+            if (name.equals(pauseString) && !keyPressed) {
+                togglePause();
+            }
+            if (name.equals(incTimeString) && !keyPressed) {
+                incTime();
+            }
+            if (name.equals(decTimeString) && !keyPressed) {
+                decTime();
+            }
+            if (name.equals(incFocusString) && !keyPressed) {
+                incFocus();
+            }
+            if (name.equals(decFocuString) && !keyPressed) {
+                decFocus();
+            }
+            if (name.equals(orbitString) && !keyPressed) {
+                disableOrbits();
+            }
+        }
+    };
 }
