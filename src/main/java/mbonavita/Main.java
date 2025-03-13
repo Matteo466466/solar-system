@@ -9,7 +9,6 @@ import com.jme3.scene.Node;
 import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
@@ -269,10 +268,10 @@ public class Main extends SimpleApplication {
             geo.setLocalTranslation(x * distanceScale, y * distanceScale, z * distanceScale);
             geo.rotate(rotation.getX(), rotation.getY(), rotation.getZ());
 
-            // On attache l'astéroïde au node de la ceinture de Kuiper
+            // Attache l'astéroïde au node de la ceinture de Kuiper
             kuiperNode.attachChild(geo);
 
-            // On stocke l'astéroïde du milieu dans le dictionnaire geos.
+            // Stocke l'astéroïde du milieu dans le dictionnaire geos.
             if(i == (quantity / 2)) geos.put(SolarSystem.KUIPER, geo);
         }
         
@@ -281,103 +280,106 @@ public class Main extends SimpleApplication {
         nodes.put(SolarSystem.KUIPER, kuiperNode);
     }
 
+    /**
+     * Crée les orbites de chaque astre.
+     */
     private void initOrbits() {
         orbitNode = new Node("orbitNode");
 
-        createOrbit(SolarSystem.MERCURY, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
-        createOrbit(SolarSystem.VENUS, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
-        createOrbit(SolarSystem.EARTH, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
-        createOrbit(SolarSystem.MOON, geos.get(SolarSystem.EARTH), nodes.get(SolarSystem.EARTH));
-        createOrbit(SolarSystem.MARS, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
-        createOrbit(SolarSystem.DEIMOS, geos.get(SolarSystem.MARS), nodes.get(SolarSystem.MARS));
-        createOrbit(SolarSystem.PHOBOS, geos.get(SolarSystem.MARS), nodes.get(SolarSystem.MARS));
-        createOrbit(SolarSystem.JUPITER, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
-        createOrbit(SolarSystem.IO, geos.get(SolarSystem.JUPITER), nodes.get(SolarSystem.JUPITER));
-        createOrbit(SolarSystem.EUROPA, geos.get(SolarSystem.JUPITER), nodes.get(SolarSystem.JUPITER));
-        createOrbit(SolarSystem.SATURN, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
-        createOrbit(SolarSystem.URANUS, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
-        createOrbit(SolarSystem.NEPTUNE, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
-        createOrbit(SolarSystem.PLUTO, geos.get(SolarSystem.SUN), nodes.get(SolarSystem.SUN));
+        createOrbit(SolarSystem.MERCURY, SolarSystem.SUN);
+        createOrbit(SolarSystem.VENUS, SolarSystem.SUN);
+        createOrbit(SolarSystem.EARTH, SolarSystem.SUN);
+        createOrbit(SolarSystem.MOON, SolarSystem.EARTH);
+        createOrbit(SolarSystem.MARS, SolarSystem.SUN);
+        createOrbit(SolarSystem.DEIMOS, SolarSystem.MARS);
+        createOrbit(SolarSystem.PHOBOS, SolarSystem.MARS);
+        createOrbit(SolarSystem.JUPITER, SolarSystem.SUN);
+        createOrbit(SolarSystem.IO, SolarSystem.JUPITER);
+        createOrbit(SolarSystem.EUROPA, SolarSystem.JUPITER);
+        createOrbit(SolarSystem.SATURN, SolarSystem.SUN);
+        createOrbit(SolarSystem.URANUS, SolarSystem.SUN);
+        createOrbit(SolarSystem.NEPTUNE, SolarSystem.SUN);
+        createOrbit(SolarSystem.PLUTO, SolarSystem.SUN);
 
         rootNode.attachChild(orbitNode);
     }
 
-    private void createOrbit(String objectName, Geometry parentObject, Node parentNode)
+    /**
+     * Crée l'orbite de l'astre objectName autour de l'astre parentName.
+     * L'orbite est créée à partir de lignes formant un cercle,
+     * qui sont ensuite attachées à un node, qui lui-même est attaché au node de l'objet parent.
+     */
+    private void createOrbit(String objectName, String parentName)
     {
         Node node = new Node(objectName + "orbit");
+        Geometry parentGeo = geos.get(parentName);
+        Node parentNode = nodes.get(parentName);
 
-        float distance = solarSystem.getDistance(objectName);
+        // Coordonnées des lignes
+        float distance = solarSystem.getDistance(objectName) * distanceScale;
         float x1;
         float x2;
         float y1;
         float y2;
 
         for(int i = 0; i < orbitResolution; i++) {
+            // Position de la ligne
             x1 = (float)Math.cos(2 * i * FastMath.PI / orbitResolution) * distance;
             y1 = (float)Math.sin(2 * i * FastMath.PI / orbitResolution) * distance;
             x2 = (float)Math.cos(2 * (i + 1) * FastMath.PI / orbitResolution) * distance;
             y2 = (float)Math.sin(2 * (i + 1) * FastMath.PI / orbitResolution) * distance;
 
+            // Création de la ligne
             Geometry orbitGeo = new Geometry("Line", new Line(new Vector3f(x1, 0, y1), new Vector3f(x2, 0, y2)));
             Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
             mat.setColor("Color", solarSystem.getColor(objectName));
             orbitGeo.setMaterial(mat);
 
-            orbitGeo.setLocalTranslation(parentObject.getLocalTranslation());
+            // Attache la ligne au node de l'orbite
+            orbitGeo.setLocalTranslation(parentGeo.getLocalTranslation());
             node.attachChild(orbitGeo);
         }
 
+        // Attache le node de l'orbite au node de l'objet parent
         parentNode.attachChild(node);
         orbitNodes.add(node);
     }
 
+    /**
+     * Attache chaque astre à un node et chaque node à son node parent.
+     */
     private void attachNodes() {
-        nodes.get("Pluto").attachChild(geos.get("Pluto"));
-        nodes.get("Neptune").attachChild(geos.get("Neptune"));
-        nodes.get("Uranus").attachChild(geos.get("Uranus"));
-        nodes.get("Saturn").attachChild(geos.get("Saturn"));
+        // Satellites des planètes
+        attachSatellites(SolarSystem.JUPITER, new String[] {SolarSystem.IO, SolarSystem.EUROPA});
+        attachSatellites(SolarSystem.MARS, new String[] {SolarSystem.DEIMOS, SolarSystem.PHOBOS});
+        attachSatellites(SolarSystem.EARTH, new String[] {SolarSystem.MOON});
+        
+        // Planètes principales
+        for (String name : solarSystem.mainPlanets) {
+            nodes.get(name).attachChild(geos.get(name));
+            nodes.get(SolarSystem.SUN).attachChild(nodes.get(name));
+        }
 
-        nodes.get("Io").attachChild(geos.get("Io"));
-        nodes.get("Io").setLocalTranslation(geos.get("Jupiter").getLocalTranslation());
-        nodes.get("Europa").attachChild(geos.get("Europa"));
-        nodes.get("Europa").setLocalTranslation(geos.get("Jupiter").getLocalTranslation());
-        nodes.get("Jupiter").attachChild(geos.get("Jupiter"));
-        nodes.get("Jupiter").attachChild(nodes.get("Io"));
-        nodes.get("Jupiter").attachChild(nodes.get("Europa"));
+        // Soleil
+        nodes.get(SolarSystem.SUN).attachChild(geos.get(SolarSystem.SUN));
+        rootNode.attachChild(nodes.get(SolarSystem.SUN));
 
-        nodes.get("Deimos").attachChild(geos.get("Deimos"));
-        nodes.get("Deimos").setLocalTranslation(geos.get("Mars").getLocalTranslation());
-        nodes.get("Phobos").attachChild(geos.get("Phobos"));
-        nodes.get("Phobos").setLocalTranslation(geos.get("Mars").getLocalTranslation());
-        nodes.get("Mars").attachChild(geos.get("Mars"));
-        nodes.get("Mars").attachChild(nodes.get("Deimos"));
-        nodes.get("Mars").attachChild(nodes.get("Phobos"));
-
-        nodes.get("Moon").attachChild(geos.get("Moon"));
-        nodes.get("Moon").setLocalTranslation(geos.get("Earth").getLocalTranslation());
-        nodes.get("Earth").attachChild(geos.get("Earth"));
-        nodes.get("Earth").attachChild(nodes.get("Moon"));
-
-        nodes.get("Venus").attachChild(geos.get("Venus"));
-        nodes.get("Mercury").attachChild(geos.get("Mercury"));
-
-        nodes.get("Sun").attachChild(geos.get("Sun"));
-        nodes.get("Sun").attachChild(nodes.get("Mercury"));
-        nodes.get("Sun").attachChild(nodes.get("Venus"));
-        nodes.get("Sun").attachChild(nodes.get("Earth"));
-        nodes.get("Sun").attachChild(nodes.get("Mars"));
-        nodes.get("Sun").attachChild(nodes.get("Jupiter"));
-        nodes.get("Sun").attachChild(nodes.get("Saturn"));
-        nodes.get("Sun").attachChild(nodes.get("Uranus"));
-        nodes.get("Sun").attachChild(nodes.get("Neptune"));
-        nodes.get("Sun").attachChild(nodes.get("Pluto"));
-
-        nodes.get("Stars").attachChild(geos.get("Stars"));
-
-        rootNode.attachChild(nodes.get("Stars"));
-        rootNode.attachChild(nodes.get("Sun"));
+        // Fond 3D
+        nodes.get(SolarSystem.STARS).attachChild(geos.get(SolarSystem.STARS));
+        rootNode.attachChild(nodes.get(SolarSystem.STARS));  
     }
-
+    
+    /**
+     * Attache chaque satellite à un node, puis attache ce node au node de l'astre parent.
+     */
+    private void attachSatellites(String parentName, String[] objectNames) {
+        for (String name : objectNames) {
+            nodes.get(name).attachChild(geos.get(name));
+            nodes.get(name).setLocalTranslation(geos.get(parentName).getLocalTranslation());
+            nodes.get(parentName).attachChild(nodes.get(name));
+        }
+    }
+    
     /**
      * Initialise une chaseCam pour pouvoir observer chaque astre. La caméra est dirigée vers le Soleil par défaut.
      * Il est possible de pivoter l'angle de vue avec le clic de la souris.
@@ -435,7 +437,7 @@ public class Main extends SimpleApplication {
             case SolarSystem.PHOBOS:
             case SolarSystem.DEIMOS:
             case SolarSystem.PLUTO:
-                adjustCamera(4f, 2f, 100f, 1f);
+                adjustCamera(4f, 2f, 1000f, 1f);
                 break;
             default:
                 adjustCamera(25f, 15f, 5000f, 30f);

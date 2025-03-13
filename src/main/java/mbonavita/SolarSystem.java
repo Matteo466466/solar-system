@@ -41,6 +41,10 @@ public class SolarSystem {
     public final List<String> focusList = Arrays.asList(SUN, MERCURY, VENUS, EARTH, MOON, MARS, DEIMOS, PHOBOS,
             JUPITER, IO, EUROPA, SATURN, URANUS, NEPTUNE, PLUTO, KUIPER);
 
+    // Liste des planètes qui ne sont pas des satellites
+    public final List<String> mainPlanets = Arrays.asList(MERCURY, VENUS, EARTH, MARS,
+            JUPITER, SATURN, URANUS, NEPTUNE, PLUTO);
+
     // Diamètre
     private final Dictionary<String, Float> size = new Hashtable<>();
     
